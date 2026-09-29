@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>運営パネル | クイズスコアボード</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>運営パネル <span id="ruleLabel" class="rule-chip"></span></h1>
+    <div class="topbar-actions">
+      <button id="openScreenBtn" class="btn">スコアボードを開く</button>
+      <button id="openSettingsBtn" class="btn">設定</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel question-panel">
+      <div class="q-head">
+        <span id="qNo" class="q-no">開始前</span>
+        <span id="qTotal" class="q-total"></span>
+        <span id="revealState" class="reveal-state"></span>
+      </div>
+      <p id="qText" class="q-text"></p>
+      <p class="q-answer"><span class="label">正解</span><span id="qAnswer"></span></p>
+      <div class="controls">
+        <button id="nextBtn" class="btn primary">次の問題 <kbd>N</kbd></button>
+        <button id="throughBtn" class="btn">スルー <kbd>T</kbd></button>
+        <button id="revealBtn" class="btn accent">正解表示 <kbd>A</kbd></button>
+        <button id="undoBtn" class="btn">元に戻す <kbd>Ctrl+Z</kbd></button>
+        <button id="resetSetBtn" class="btn danger">セットリセット</button>
+      </div>
+    </section>
+
+    <aside class="panel viewer-panel">
+      <h2>観客用スマホ</h2>
+      <div id="qrBox" class="qr-box"></div>
+      <p id="viewerUrl" class="viewer-url"></p>
+      <p class="net-line"><span id="netDot" class="dot"></span><span id="netStatus">準備中</span></p>
+      <p>接続中: <strong id="viewerCount">0</strong> 台</p>
+      <label class="check"><input type="checkbox" id="screenQrToggle"> スコアボードにQRを表示</label>
+    </aside>
+
+    <section class="panel players-panel">
+      <div id="players" class="players"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <dialog id="settingsDialog" class="settings">
+    <form method="dialog" class="settings-head">
+      <h2>設定</h2>
+      <button class="btn" value="close">閉じる</button>
+    </form>
+
+    <fieldset>
+      <legend>ルール・表示</legend>
+      <label>大会名 (スコアボード左上)<input type="text" id="setTitle" placeholder="例: abc ReBoot 1R"></label>
+      <label>ルール
+        <select id="setRule">
+          <option value="nomx">N○M× (N問正解で勝ち抜け / M回誤答で失格)</option>
+          <option value="nbyn">NbyN (正解数×(N−誤答数) が N×N で勝ち抜け)</option>
+          <option value="free">フリー (自動判定なし)</option>
+        </select>
+      </label>
+      <div class="row" data-rule="nomx">
+        <label>勝ち抜け正解数 N<input type="number" id="setWin" min="1" max="99"></label>
+        <label>失格誤答数 M<input type="number" id="setLose" min="1" max="99"></label>
+      </div>
+      <div class="row" data-rule="nbyn">
+        <label>N<input type="number" id="setN" min="1" max="99"></label>
+      </div>
+      <label>誤答後の休み (問題数、0でなし)<input type="number" id="setRest" min="0" max="20"></label>
+      <label class="check"><input type="checkbox" id="setAutoReveal"> 正解判定 (○) で自動的に正解を表示する</label>
+      <label class="check"><input type="checkbox" id="setSound"> 効果音を鳴らす</label>
+      <p class="note" id="soundInfo"></p>
+      <button id="applyRuleBtn" class="btn primary">ルール・表示を適用</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>プレイヤー</legend>
+      <label>1行に1人。色を指定する場合は「名前,色」(色: 赤 / 青 / 緑 / 黒)
+        <textarea id="setPlayers" rows="10"></textarea>
+      </label>
+      <button id="applyPlayersBtn" class="btn primary">プレイヤーを再設定 (得点はリセット)</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>問題データ</legend>
+      <p id="questionsInfo" class="note"></p>
+      <div class="row">
+        <label class="file">JSONファイルを読み込む<input type="file" id="questionsFile" accept=".json,application/json"></label>
+        <button id="reloadQuestionsBtn" class="btn">questions.json を再読込</button>
+      </div>
+      <div class="row">
+        <label>問題番号を指定して移動<input type="number" id="jumpQNo" min="0"></label>
+        <button id="jumpBtn" class="btn">移動</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>観客用スマホ接続</legend>
+      <label>viewer.html の公開URL (例: https://xxxx.github.io/abc-ReBoot_scoreboard/)
+        <input type="url" id="setViewerBase" placeholder="空欄なら、この画面のURLから自動判定">
+      </label>
+      <div class="row">
+        <button id="applyViewerBtn" class="btn primary">URLを適用</button>
+        <button id="regenIdBtn" class="btn">接続IDを再発行</button>
+      </div>
+      <p class="note">接続IDを再発行すると、現在のQRコードは使えなくなります。</p>
+    </fieldset>
+
+    <fieldset class="danger-zone">
+      <legend>初期化</legend>
+      <button id="factoryResetBtn" class="btn danger">すべて初期化 (設定・得点・履歴)</button>
+    </fieldset>
+  </dialog>
+
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

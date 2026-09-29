@@ -1,0 +1,109 @@
+/* 観客・プレイヤー用画面 (スマホ最適化) */
+:root {
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --text: #16181d;
+  --muted: #6b7280;
+  --line: #e2e5ea;
+  --accent: #c8102e;
+  --answer-bg: #fff8d6;
+  --answer-line: #e0b400;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111318;
+    --card: #1c1f26;
+    --text: #f2f3f5;
+    --muted: #9aa3b2;
+    --line: #2e333d;
+    --accent: #ff5a6e;
+    --answer-bg: #2c2610;
+    --answer-line: #c9a200;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+.vheader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.vtitle { font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); flex: none; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.dot.ok { background: #22c55e; }
+.dot.wait { background: #eab308; animation: blink 1.2s infinite; }
+.dot.error { background: #ef4444; }
+@keyframes blink { 50% { opacity: 0.3; } }
+
+.vmain {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.qmeta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.qno { font-size: 1.8rem; font-weight: 800; color: var(--accent); letter-spacing: 0.02em; }
+.rule { font-size: 0.8rem; color: var(--muted); }
+
+.qcard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 18px;
+}
+.question {
+  margin: 0;
+  font-size: clamp(1.2rem, 5.2vw, 1.6rem);
+  line-height: 1.75;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+.question.waiting { color: var(--muted); font-size: 1.1rem; text-align: center; }
+
+.answer {
+  margin-top: 16px;
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 2px dashed var(--line);
+  background: transparent;
+  text-align: center;
+}
+.alabel { font-size: 0.8rem; color: var(--muted); font-weight: 700; letter-spacing: 0.1em; }
+.atext { font-size: clamp(1.3rem, 6vw, 1.9rem); font-weight: 800; margin-top: 4px; color: var(--muted); overflow-wrap: anywhere; }
+.answer.revealed { border: 2px solid var(--answer-line); background: var(--answer-bg); }
+.answer.revealed .atext { color: var(--text); }
+.expl { margin: 10px 0 0; font-size: 0.95rem; line-height: 1.7; text-align: left; }
+
+.flash { animation: flash 0.6s ease-out; }
+@keyframes flash {
+  0% { transform: scale(0.97); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flash, .dot.wait { animation: none; }
+}
+[hidden] { display: none !important; }

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111318">
+  <title>問題ビューア</title>
+  <link rel="stylesheet" href="css/viewer.css">
+</head>
+<body>
+  <header class="vheader">
+    <div id="title" class="vtitle">クイズ</div>
+    <div class="conn"><span id="connDot" class="dot"></span><span id="connText">接続中…</span></div>
+  </header>
+
+  <main class="vmain">
+    <div class="qmeta">
+      <span id="qno" class="qno"></span>
+      <span id="rule" class="rule"></span>
+    </div>
+
+    <article class="qcard">
+      <p id="question" class="question waiting">運営に接続しています…</p>
+    </article>
+
+    <section id="answerBox" class="answer" hidden>
+      <div class="alabel">正解</div>
+      <div id="answer" class="atext"></div>
+      <p id="explanation" class="expl" hidden></p>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/viewer.js"></script>
+</body>
+</html>

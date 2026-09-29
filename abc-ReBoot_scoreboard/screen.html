@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>スコアボード</title>
+  <link rel="stylesheet" href="css/screen.css">
+</head>
+<body>
+  <header class="board-header">
+    <div id="title" class="board-title"></div>
+    <div id="rule" class="board-rule"></div>
+    <div id="qno" class="board-qno"></div>
+  </header>
+
+  <main id="board" class="scoreboard-container"></main>
+
+  <div id="qrOverlay" class="qr-overlay" hidden>
+    <div class="qr-card">
+      <div id="screenQr" class="screen-qr"></div>
+      <p>スマホで問題文・正解を見る</p>
+    </div>
+  </div>
+
+  <div id="hint" class="hint">F キー / ダブルクリックで全画面表示</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/screen.js"></script>
+</body>
+</html>
