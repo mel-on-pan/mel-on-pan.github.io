@@ -12,44 +12,57 @@
   let conn = null;
   let retryTimer = 0;
   let openTimer = 0;
-  let lastKey = '';
+  let lastQNo = null;
+
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function setConn(kind, text) {
     $('connDot').className = 'dot ' + kind;
     $('connText').textContent = text;
   }
 
+  /** d.items: 現在の問題を先頭に、直近5問が新しい順で入っている */
   function render(d) {
+    const items = Array.isArray(d.items) ? d.items : [];
+    const cur = items[0];
     $('title').textContent = d.title || 'クイズ';
     $('rule').textContent = d.rule || '';
     $('qno').textContent = d.qNo >= 1 ? 'Q.' + d.qNo : '';
 
     const q = $('question');
-    if (d.qNo < 1) {
-      q.textContent = 'まもなく開始します';
-      q.classList.add('waiting');
-    } else {
-      q.textContent = d.question || '(問題文はありません)';
-      q.classList.remove('waiting');
-    }
+    const started = d.qNo >= 1 && cur;
+    q.textContent = started ? cur.question || '(問題文はありません)' : 'まもなく開始します';
+    q.classList.toggle('waiting', !started);
 
-    const box = $('answerBox');
-    box.hidden = d.qNo < 1;
-    box.classList.toggle('revealed', !!d.revealed);
-    $('answer').textContent = d.revealed ? d.answer || '—' : '？？？';
-    $('explanation').textContent = d.explanation || '';
-    $('explanation').hidden = !(d.revealed && d.explanation);
+    $('answerBox').hidden = !started;
+    $('answer').textContent = started ? cur.answer || '—' : '';
+    $('explanation').textContent = started ? cur.explanation || '' : '';
+    $('explanation').hidden = !(started && cur.explanation);
 
-    // 問題が切り替わった・正解が出たときだけ演出する
-    const key = d.qNo + ':' + (d.revealed ? 1 : 0);
-    if (lastKey && key !== lastKey) {
-      const target = d.revealed ? box : $('question').parentElement;
-      target.classList.remove('flash');
-      void target.offsetWidth;
-      target.classList.add('flash');
-      if (!d.revealed) window.scrollTo({ top: 0, behavior: 'smooth' });
+    const past = items.slice(1);
+    $('historyBox').hidden = past.length === 0;
+    $('history').innerHTML = past
+      .map(
+        (it) =>
+          '<li class="hitem">' +
+          '<div class="hno">Q.' + it.qNo + '</div>' +
+          '<p class="hq">' + esc(it.question || '(問題文はありません)') + '</p>' +
+          '<p class="ha"><span class="alabel">正解</span>' + esc(it.answer || '—') + '</p>' +
+          (it.explanation ? '<p class="expl">' + esc(it.explanation) + '</p>' : '') +
+          '</li>'
+      )
+      .join('');
+
+    // 問題が切り替わったときだけ演出して先頭へ戻す
+    if (lastQNo !== null && d.qNo !== lastQNo) {
+      const card = $('current');
+      card.classList.remove('flash');
+      void card.offsetWidth;
+      card.classList.add('flash');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    lastKey = key;
+    lastQNo = d.qNo;
   }
 
   // ---------- 接続 ----------

@@ -19,14 +19,18 @@
       <span id="rule" class="rule"></span>
     </div>
 
-    <article class="qcard">
+    <article id="current" class="qcard">
       <p id="question" class="question waiting">運営に接続しています…</p>
+      <section id="answerBox" class="answer" hidden>
+        <div class="alabel">正解</div>
+        <div id="answer" class="atext"></div>
+        <p id="explanation" class="expl" hidden></p>
+      </section>
     </article>
 
-    <section id="answerBox" class="answer" hidden>
-      <div class="alabel">正解</div>
-      <div id="answer" class="atext"></div>
-      <p id="explanation" class="expl" hidden></p>
+    <section id="historyBox" class="history" hidden>
+      <h2 class="history-head">直前の問題</h2>
+      <ol id="history" class="history-list"></ol>
     </section>
   </main>
 
