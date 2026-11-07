@@ -30,10 +30,11 @@
     const cur = items[0];
     $('title').textContent = d.title || 'クイズ';
     $('rule').textContent = d.rule || '';
-    $('qno').textContent = d.qNo >= 1 ? 'Q.' + d.qNo : '';
+    $('qno').textContent = d.qNo >= 1 && !d.blank ? 'Q.' + d.qNo : '';
 
     const q = $('question');
-    const started = d.qNo >= 1 && cur;
+    // ルール変更・プレイヤー再設定の直後 (blank) は開始前と同じ表示にし、履歴も消す
+    const started = !d.blank && d.qNo >= 1 && cur;
     q.textContent = started ? cur.question || '(問題文はありません)' : 'まもなく開始します';
     q.classList.toggle('waiting', !started);
 
@@ -42,7 +43,7 @@
     $('explanation').textContent = started ? cur.explanation || '' : '';
     $('explanation').hidden = !(started && cur.explanation);
 
-    const past = items.slice(1);
+    const past = d.blank ? [] : items.slice(1);
     $('historyBox').hidden = past.length === 0;
     $('history').innerHTML = past
       .map(
