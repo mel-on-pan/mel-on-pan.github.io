@@ -5,13 +5,15 @@
   const $ = (id) => document.getElementById(id);
   const hostId = new URLSearchParams(location.search).get('host');
   const CACHE_KEY = 'quizboard.viewer.last';
-  const RETRY_MS = 3000;
-  const OPEN_TIMEOUT_MS = 10000;
+  const relayUrl = ((window.QB_CONFIG && window.QB_CONFIG.relayUrl) || '').trim().replace(/\/+$/, '');
+  const MAX_RETRY_MS = 15000;
+  const HEARTBEAT_MS = 25000;
+  const STALE_MS = 65000;
 
-  let peer = null;
-  let conn = null;
+  let ws = null;
   let retryTimer = 0;
-  let openTimer = 0;
+  let attempt = 0;
+  let lastRecv = 0;
   let lastQNo = null;
 
   const esc = (s) =>
@@ -65,79 +67,107 @@
     lastQNo = d.qNo;
   }
 
-  // ---------- 接続 ----------
+  // ---------- 接続 (Cloudflare 中継サーバー) ----------
+  // 中継サーバーが落ちて全員が一斉に再接続しないよう、待ち時間は指数的に伸ばしてばらつかせる。
 
   function scheduleRetry() {
     clearTimeout(retryTimer);
-    clearTimeout(openTimer);
+    ws = null;
+    const base = Math.min(MAX_RETRY_MS, 1000 * 2 ** attempt);
+    attempt += 1;
     setConn('wait', '再接続中…');
-    retryTimer = setTimeout(connect, RETRY_MS);
+    retryTimer = setTimeout(connect, base / 2 + Math.random() * (base / 2));
+  }
+
+  function detach() {
+    const old = ws;
+    ws = null;
+    if (!old) return;
+    old.onopen = old.onmessage = old.onclose = old.onerror = null;
+    try {
+      old.close();
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   function connect() {
     clearTimeout(retryTimer);
-    if (!peer || peer.destroyed) return startPeer();
-    if (peer.disconnected) {
-      peer.reconnect();
+    detach();
+    if (!hostId) return;
+    if (!relayUrl) {
+      setConn('error', '未設定');
+      $('question').textContent = '中継サーバーが設定されていません。運営にお知らせください。';
       return;
     }
-    const old = conn;
-    conn = null; // 古い接続の close イベントで再接続が走らないように先に外す
-    if (old) old.close();
+    setConn('wait', attempt ? '再接続中…' : '接続中…');
 
-    conn = peer.connect(hostId, { reliable: true });
-    const c = conn;
-    openTimer = setTimeout(() => {
-      if (c === conn && !c.open) scheduleRetry();
-    }, OPEN_TIMEOUT_MS);
-
-    c.on('open', () => {
-      clearTimeout(openTimer);
+    let s;
+    try {
+      s = new WebSocket(relayUrl + '/rooms/' + encodeURIComponent(hostId) + '/ws?role=viewer');
+    } catch (e) {
+      setConn('error', '接続できません');
+      return;
+    }
+    ws = s;
+    s.onopen = () => {
+      attempt = 0;
+      lastRecv = Date.now();
       setConn('ok', '接続中');
-    });
-    c.on('data', (d) => {
+    };
+    s.onmessage = (e) => {
+      lastRecv = Date.now();
+      if (e.data === 'pong') return;
+      let d;
+      try {
+        d = JSON.parse(e.data);
+      } catch (err) {
+        return;
+      }
+      if (d && d.type === 'EMPTY') {
+        if (lastQNo === null) $('question').textContent = '運営の準備を待っています…';
+        return;
+      }
       if (!d || d.type !== 'STATE') return;
       render(d);
       try {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify(d));
-      } catch (e) {
+      } catch (err) {
         /* ignore */
       }
-    });
-    c.on('close', () => c === conn && scheduleRetry());
-    c.on('error', () => c === conn && scheduleRetry());
+    };
+    s.onclose = () => {
+      if (s === ws) scheduleRetry();
+    };
   }
 
-  function startPeer() {
-    if (typeof Peer === 'undefined') {
-      setConn('error', '通信ライブラリを読み込めません');
+  function isStale(ms) {
+    return Date.now() - lastRecv > ms;
+  }
+
+  // 生存確認: 一定時間なにも届かなければ (pong も来なければ) 張り直す
+  setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (isStale(STALE_MS)) {
+      detach();
+      scheduleRetry();
       return;
     }
-    if (peer) peer.destroy();
-    setConn('wait', '接続中…');
-    peer = new Peer({ debug: 1 });
-    peer.on('open', connect);
-    peer.on('disconnected', () => {
-      if (!peer.destroyed) scheduleRetry();
-    });
-    peer.on('error', (err) => {
-      console.warn('PeerJS error:', err.type, err);
-      if (err.type === 'peer-unavailable') {
-        setConn('wait', '運営の準備を待っています…');
-        clearTimeout(retryTimer);
-        retryTimer = setTimeout(connect, RETRY_MS);
-      } else {
-        clearTimeout(retryTimer);
-        setConn('error', '通信エラー。再接続します…');
-        retryTimer = setTimeout(startPeer, RETRY_MS);
-      }
-    });
-  }
+    ws.send('ping');
+  }, HEARTBEAT_MS);
 
-  // スマホのスリープ復帰時はすぐ再接続を試みる
+  // スマホのスリープ復帰・回線復帰時はすぐ確認する
+  function wake() {
+    const open = ws && ws.readyState === WebSocket.OPEN;
+    if (open && !isStale(HEARTBEAT_MS + 5000)) return;
+    attempt = 0;
+    connect();
+  }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !(conn && conn.open)) connect();
+    if (document.visibilityState === 'visible') wake();
   });
+  window.addEventListener('online', wake);
+  window.addEventListener('pageshow', (e) => e.persisted && wake());
 
   // ---------- 起動 ----------
 
@@ -153,5 +183,5 @@
   } catch (e) {
     /* ignore */
   }
-  startPeer();
+  connect();
 })();
