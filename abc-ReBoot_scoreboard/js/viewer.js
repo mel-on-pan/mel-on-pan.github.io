@@ -85,10 +85,7 @@
   }
   frame.addEventListener('load', postBoard);
 
-  // 盤面は横長 (800x420 以上) で描く。これより小さい画面では枠を大きくしてスクロールさせる
-  const BOARD_MIN_W = 800;
-  const BOARD_MIN_H = 420;
-
+  // 盤面は画面いっぱいの横長で描く (縦向きの端末では 90 度回転)。下限サイズは設けない
   function layoutBoard() {
     const tabsBottom = $('vheader').getBoundingClientRect().bottom;
     document.documentElement.style.setProperty('--board-top', Math.round(tabsBottom) + 'px');
@@ -96,8 +93,8 @@
     const availH = window.innerHeight - tabsBottom;
     const portrait = availH > availW;
     // 横向きに描く論理サイズ (縦向きの端末では 90 度回転するので幅と高さが入れ替わる)
-    const fw = Math.max(portrait ? availH : availW, BOARD_MIN_W);
-    const fh = Math.max(portrait ? availW : availH, BOARD_MIN_H);
+    const fw = Math.max(1, portrait ? availH : availW);
+    const fh = Math.max(1, portrait ? availW : availH);
     const stage = $('boardStage');
     stage.classList.toggle('rotated', portrait);
     stage.style.width = (portrait ? fh : fw) + 'px';
