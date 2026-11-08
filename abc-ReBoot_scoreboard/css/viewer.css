@@ -136,21 +136,28 @@ body {
 }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
 
-/* スコアボード (screen.html を埋め込み。縦向きのときは横向きに回転し、小さい画面ではスクロール) */
+/* スコアボード (screen.html を 1280x720 で埋め込み、js 側で縮小・回転して画面に収める) */
 body.on-board { overflow: hidden; }
 .boardpane {
   position: fixed;
-  top: var(--board-top, 85px);
+  top: var(--board-top, 49px);
   left: 0;
   right: 0;
   bottom: 0;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  background: #000;
+  overflow: hidden;
+  background: #07090d;
 }
-.boardstage { position: relative; }
-.boardframe { position: absolute; top: 0; left: 0; border: 0; background: #000; display: block; }
-.boardstage.rotated .boardframe { transform-origin: top left; transform: rotate(90deg); }
+.boardstage { position: absolute; inset: 0; }
+.boardframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1280px;
+  height: 720px;
+  border: 0;
+  background: #07090d;
+  transform-origin: top left;
+}
 
 .flash { animation: flash 0.6s ease-out; }
 @keyframes flash {

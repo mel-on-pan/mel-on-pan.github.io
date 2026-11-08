@@ -85,23 +85,24 @@
   }
   frame.addEventListener('load', postBoard);
 
-  // 盤面は画面いっぱいの横長で描く (縦向きの端末では 90 度回転)。下限サイズは設けない
+  // 盤面はプロジェクター用の 16:9 (1280x720) で描き、領域に収まるよう縮小して中央に置く。
+  // 縦向きの端末では 90 度回転して横長で見せる。はみ出さないのでスクロールは不要。
+  const BOARD_W = 1280;
+  const BOARD_H = 720;
+
   function layoutBoard() {
     const tabsBottom = $('vheader').getBoundingClientRect().bottom;
     document.documentElement.style.setProperty('--board-top', Math.round(tabsBottom) + 'px');
     const availW = window.innerWidth;
-    const availH = window.innerHeight - tabsBottom;
+    const availH = Math.max(1, window.innerHeight - tabsBottom);
     const portrait = availH > availW;
-    // 横向きに描く論理サイズ (縦向きの端末では 90 度回転するので幅と高さが入れ替わる)
-    const fw = Math.max(1, portrait ? availH : availW);
-    const fh = Math.max(1, portrait ? availW : availH);
-    const stage = $('boardStage');
-    stage.classList.toggle('rotated', portrait);
-    stage.style.width = (portrait ? fh : fw) + 'px';
-    stage.style.height = (portrait ? fw : fh) + 'px';
-    frame.style.width = fw + 'px';
-    frame.style.height = fh + 'px';
-    frame.style.left = portrait ? fh + 'px' : '0';
+    const bw = portrait ? BOARD_H : BOARD_W; // 画面上に占める幅 (拡大前)
+    const bh = portrait ? BOARD_W : BOARD_H;
+    const scale = Math.min(availW / bw, availH / bh);
+    const tx = (availW - bw * scale) / 2 + (portrait ? BOARD_H * scale : 0);
+    const ty = (availH - bh * scale) / 2;
+    frame.style.transform =
+      'translate(' + tx + 'px,' + ty + 'px)' + (portrait ? ' rotate(90deg)' : '') + ' scale(' + scale + ')';
   }
   window.addEventListener('resize', layoutBoard);
   window.addEventListener('orientationchange', layoutBoard);
