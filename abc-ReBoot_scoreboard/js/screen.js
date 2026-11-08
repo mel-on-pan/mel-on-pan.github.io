@@ -47,7 +47,7 @@
         '<span class="x on">' + Math.max(0, 10 - p.wrong) + '</span>';
     }
     // Freeze10: バツ数のみ
-    if (s.rule === 'freeze10') return '<span class="x on">×' + p.wrong + '</span>';
+    if (s.rule === 'freeze10') return '<span class="x on">' + p.wrong + '×</span>';
     const lossOnly = s.rule === 'nomx' || s.rule === 'renda' || s.rule === 'updown10';
     const loseMax = s.rule === 'updown10' ? 2 : s.lose;
     if (lossOnly && loseMax <= 7) {
