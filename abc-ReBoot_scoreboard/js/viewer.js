@@ -91,11 +91,15 @@
   const BOARD_H = 720;
 
   function layoutBoard() {
-    const tabsBottom = $('vheader').getBoundingClientRect().bottom;
-    document.documentElement.style.setProperty('--board-top', Math.round(tabsBottom) + 'px');
-    const availW = window.innerWidth;
-    const availH = Math.max(1, window.innerHeight - tabsBottom);
-    const portrait = availH > availW;
+    // 縦向き: タブは上の帯 / 横向き: 盤面が潰れないよう、タブは左の縦帯 (縦向きで上だった辺と同じ側)
+    const hr = $('vheader').getBoundingClientRect();
+    const portrait = window.innerHeight >= window.innerWidth;
+    const left = portrait ? 0 : Math.round(hr.right);
+    const top = portrait ? Math.round(hr.bottom) : 0;
+    document.documentElement.style.setProperty('--board-top', top + 'px');
+    document.documentElement.style.setProperty('--board-left', left + 'px');
+    const availW = Math.max(1, window.innerWidth - left);
+    const availH = Math.max(1, window.innerHeight - top);
     const bw = portrait ? BOARD_H : BOARD_W; // 画面上に占める幅 (拡大前)
     const bh = portrait ? BOARD_W : BOARD_H;
     const scale = Math.min(availW / bw, availH / bh);

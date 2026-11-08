@@ -141,7 +141,7 @@ body.on-board { overflow: hidden; }
 .boardpane {
   position: fixed;
   top: var(--board-top, 49px);
-  left: 0;
+  left: var(--board-left, 0px);
   right: 0;
   bottom: 0;
   overflow: hidden;
@@ -157,6 +157,35 @@ body.on-board { overflow: hidden; }
   border: 0;
   background: #07090d;
   transform-origin: top left;
+}
+
+/* 横向き: タブを左の縦帯にして、盤面の高さを確保する */
+@media (orientation: landscape) {
+  .vheader {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: env(safe-area-inset-left, 0px);
+    width: 64px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0 0 10px;
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+  }
+  .tabs { flex-direction: column; flex: none; }
+  .tab {
+    flex: none;
+    padding: 16px 0;
+    writing-mode: vertical-rl;
+    border-bottom: none;
+    border-right: 3px solid transparent;
+  }
+  .tab.active { border-right-color: var(--accent); }
+  .conn { flex-direction: column; gap: 4px; align-self: center; font-size: 0.7rem; }
+  body { padding-left: calc(64px + env(safe-area-inset-left, 0px)); }
 }
 
 .flash { animation: flash 0.6s ease-out; }
