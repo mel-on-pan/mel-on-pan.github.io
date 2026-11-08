@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>スコアボード</title>
+  <link rel="stylesheet" href="css/screen.css">
+</head>
+<body>
+  <header class="board-header">
+    <div class="board-head-row">
+      <div class="board-head-left">
+        <div id="title" class="board-title"></div>
+        <div id="rule" class="board-rule"></div>
+      </div>
+      <div id="timer" class="board-timer"></div>
+      <div class="board-head-right">
+        <div class="board-qno-wrap">
+          <div id="survivors" class="board-survivors"></div>
+        </div>
+        <img class="board-logo" src="reboot_logo_dark.png" alt="abc ReBoot">
+      </div>
+    </div>
+    <!-- 問題・正解 (運営パネルで「スコアボードに問題・正解を表示」をオンにしたときだけ表示) -->
+    <section class="board-question" aria-live="polite">
+      <div class="bq-inner">
+        <span class="bq-tag q">Q</span>
+        <p id="sq" class="sq-text"></p>
+        <span class="bq-tag a">A</span>
+        <p id="sa" class="sa-text"></p>
+      </div>
+    </section>
+  </header>
+
+  <main id="board" class="scoreboard-container"></main>
+
+  <div id="qrOverlay" class="qr-overlay" hidden>
+    <div class="qr-card">
+      <div id="screenQr" class="screen-qr"></div>
+      <p>スマホで問題文・正解を見る</p>
+    </div>
+  </div>
+
+  <div id="hint" class="hint">F キー / ダブルクリックで全画面表示</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/screen.js"></script>
+</body>
+</html>

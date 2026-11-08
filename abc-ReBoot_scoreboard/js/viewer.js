@@ -66,6 +66,60 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     lastQNo = d.qNo;
+    renderBoard(d.board);
+  }
+
+  // ---------- スコアボードタブ ----------
+  // screen.html を iframe で埋め込み、受信した盤面を postMessage で渡す (表示は運営のスコアボードと同じ)
+
+  const frame = $('boardFrame');
+  let lastBoard = null;
+
+  function renderBoard(b) {
+    if (b) lastBoard = b;
+    postBoard();
+  }
+
+  function postBoard() {
+    if (!lastBoard || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({ type: 'QB_STATE', state: lastBoard }, location.origin);
+  }
+  frame.addEventListener('load', postBoard);
+
+  /** 盤面エリアの上端 (ヘッダー+タブの高さ) を CSS に伝える */
+  function layoutBoard() {
+    const top = $('tabs').getBoundingClientRect().bottom;
+    document.documentElement.style.setProperty('--board-top', Math.round(top) + 'px');
+  }
+  window.addEventListener('resize', layoutBoard);
+  window.addEventListener('orientationchange', layoutBoard);
+
+  // ---------- タブ ----------
+
+  const TAB_KEY = 'quizboard.viewer.tab';
+  function showTab(name) {
+    const isB = name === 'b';
+    $('paneQ').hidden = isB;
+    $('paneB').hidden = !isB;
+    $('tabQ').classList.toggle('active', !isB);
+    $('tabB').classList.toggle('active', isB);
+    $('tabQ').setAttribute('aria-selected', String(!isB));
+    $('tabB').setAttribute('aria-selected', String(isB));
+    try {
+      sessionStorage.setItem(TAB_KEY, name);
+    } catch (e) {
+      /* ignore */
+    }
+    document.body.classList.toggle('on-board', isB);
+    layoutBoard();
+    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=4');
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+  try {
+    showTab(sessionStorage.getItem(TAB_KEY) === 'b' ? 'b' : 'q');
+  } catch (e) {
+    /* ignore */
   }
 
   // ---------- 接続 (Cloudflare 中継サーバー) ----------

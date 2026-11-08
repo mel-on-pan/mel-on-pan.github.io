@@ -1,0 +1,565 @@
+/* メインスクリーン (プロジェクター用 16:9)
+ * 方針: マットで平面的。黒地 + 空色の線。角丸・光沢・グラデーション・発光・金色は使わない。 */
+:root {
+  --bg: #07090d;
+  --panel: #0e1218;
+  --ink: #06121f;
+  --text: #f4f7fb;
+  --muted: rgba(244, 247, 251, 0.45);
+  --line: rgba(255, 255, 255, 0.12);
+  --sky: #8fd3ff;
+  --rest: #6f7b7d;
+  --lose: #8c1a30;
+  --wrong: #ff5c7a;
+  --count: 8;
+  --num: "Bahnschrift", "DIN Alternate", "Arial Narrow", "Segoe UI", Impact, sans-serif;
+  --ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  padding: 2.4vh 2.4vw 2.6vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: default;
+}
+
+/* ヘッダー: 左 = 大会名 + ルール名 / 右 = 問題番号 + ロゴ */
+.board-header {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  margin-bottom: 2.4vh;
+  padding-bottom: 1.6vh;
+  position: relative;
+}
+.board-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--sky);
+  transform-origin: left;
+}
+/* 行の高さを固定 (13vh − 下余白) し、問題欄の高さだけを伸縮させる → ルール・ロゴは途切れず連続的に動く */
+.board-head-row {
+  height: 11.4vh;
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.board-head-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1vh;
+  min-width: 0;
+}
+.board-title {
+  min-height: 2.6vh;
+  max-width: 60vw;
+  font-size: 2.2vh;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.32em;
+  color: var(--muted);
+}
+.board-rule {
+  font-family: var(--num);
+  font-size: 6.6vh;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--text);
+}
+.board-head-right {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.4vw;
+  flex: none;
+}
+.board-qno {
+  font-family: var(--num);
+  font-size: 3.4vh;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--sky);
+}
+.board-qno:empty { display: none; }
+.board-qno-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.8vh;
+}
+.board-survivors {
+  font-family: var(--num);
+  font-size: 6vh;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--sky);
+}
+.board-survivors:empty { display: none; }
+/* 制限時間タイマー (Number10 系ルールのみ) */
+.board-head-row { position: relative; }
+.board-timer {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-family: var(--num);
+  font-size: 10.4vh;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.board-timer:empty { display: none; }
+.board-timer.paused { color: var(--muted); }
+.board-timer.warn { color: #ff9f1c; }
+.board-timer.over { color: var(--wrong); animation: timer-blink 1s steps(2, start) infinite; }
+@keyframes timer-blink { 50% { opacity: 0.35; } }
+/* ロゴは黒地用に配色を変えた透過PNG (濃紺→白, 空色→スコアボードの空色)。台は置かず背景に直接載せる */
+.board-logo {
+  display: block;
+  height: 10.5vh;
+  width: auto;
+}
+
+/* 問題・正解 (通信障害時用。ヘッダーを広げ、空色の線の上に左揃えで2段表示) */
+:root {
+  --sq-max: 5vh; /* 問題文の最大文字サイズ。長い問題は2行に収まるまで自動で縮む */
+  --sq-lh: 1.3;
+  --sa-max: 4.4vh;
+  --sa-lh: 1.25;
+  --answer: #ffb340;
+  /* 表示切替アニメーション: 線はシグモイド状 (ゆっくり→速い→ゆっくり) に動き、その後に文字がフェード */
+  --line-ms: 900ms;
+  --line-ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --qfade-ms: 450ms;
+}
+.board-rule,
+.board-logo,
+.status-badge,
+.score-display,
+.penalty-display {
+  transition-property: height, font-size;
+  transition-duration: var(--line-ms);
+  transition-timing-function: var(--line-ease);
+}
+body.no-anim *, body.no-anim *::before, body.no-anim *::after { transition: none !important; }
+/* 問題欄は常にレイアウト上にあり、オフ時は高さ0。高さ (と上の余白) の変化で空色の線が上下する */
+:root { --bq-h: 22vh; --bq-gap: 1.8vh; }
+.board-question {
+  flex: none;
+  height: 0;
+  margin-top: 0;
+  overflow: hidden;
+  opacity: 0;
+  text-align: left;
+  transition:
+    height var(--line-ms) var(--line-ease),
+    margin-top var(--line-ms) var(--line-ease),
+    opacity var(--qfade-ms) ease;
+}
+body.q-in .board-question { opacity: 1; }
+body.show-q .board-question { height: var(--bq-h); margin-top: var(--bq-gap); } /* ヘッダー全体で 13vh → 約37vh */
+/* ヘッダー (大会情報) と区別するため、問題欄は一段明るい帯 + 左の空色ライン + Q/A の札で囲う */
+.bq-inner {
+  height: var(--bq-h);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  align-items: start;
+  column-gap: 1.4vw;
+  row-gap: 1.4vh;
+  padding: 1.4vh 2vw 1.4vh 1.4vw;
+  background: var(--panel);
+  border-left: 0.6vh solid var(--sky);
+}
+.bq-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5vh;
+  height: 5vh;
+  font-family: var(--num);
+  font-size: 3.4vh;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+/* Q の札は問題文1行目の中央にそろえる (--sq-line は文字サイズ調整時に JS が設定) */
+.bq-tag.q { background: var(--sky); margin-top: max(0px, calc((var(--sq-line, 6.5vh) - 5vh) / 2)); }
+.bq-tag.a { background: var(--answer); align-self: center; }
+body.show-q .board-rule { font-size: 5vh; }
+body.show-q .board-logo { height: 8vh; }
+.sq-text, .sa-text {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+.sq-text {
+  max-height: calc(var(--sq-max) * var(--sq-lh) * 2);
+  font-size: var(--sq-max);
+  line-height: var(--sq-lh);
+  -webkit-line-clamp: 2;
+  color: #fff;
+}
+.sa-text {
+  max-height: calc(var(--sa-max) * var(--sa-lh));
+  font-size: var(--sa-max);
+  line-height: var(--sa-lh);
+  -webkit-line-clamp: 1;
+  color: var(--answer);
+}
+/* 問題表示中はプレイヤー欄を詰める */
+body.show-q .score-display { height: 9.4vh; font-size: min(7.4vh, calc(150cqw / var(--digits, 2))); }
+body.show-q .status-badge { height: 5vh; }
+body.show-q .penalty-display { height: 6.4vh; }
+
+/* スコアボードコンテナ */
+.scoreboard-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(6px, 0.9vw, 18px);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  counter-reset: pl;
+}
+
+/* プレイヤー列 */
+.player-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 11vw;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  position: relative;
+  container-type: inline-size;
+  counter-increment: pl;
+  transition: opacity 0.4s, filter 0.4s, border-color 0.4s;
+}
+
+/* 状態バッジ (何も無いときはプレイヤー番号を薄く出す) */
+.status-badge {
+  width: 100%;
+  height: 6vh;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--num);
+  font-size: min(3.6vh, 26cqw);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  background-color: transparent;
+}
+.status-badge:empty::before {
+  content: counter(pl, decimal-leading-zero);
+  font-size: min(2.4vh, 18cqw);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+}
+.status-badge.rank { background: var(--text); color: var(--ink); }
+/* 運営が設定した順位 */
+.status-badge.seed { color: #fff; }
+.status-badge.seed-red { background: #CC0000; }
+.status-badge.seed-blue { background: #0044CC; }
+.status-badge.seed-yellow { background: #C9A000; }
+.status-badge.seed-green { background: #008833; }
+.status-badge.seed-purple { background: #6A1B9A; }
+.status-badge.lose { background: var(--lose); color: #fff; }
+.status-badge.chain { background: var(--sky); color: var(--ink); font-family: inherit; animation: chain-pulse 1.4s ease-in-out infinite; }
+.status-badge.rest { background: var(--rest); color: #fff; font-family: inherit; white-space: nowrap; }
+
+/* 縦書きネームプレート: 透過 + 空色の縁取り。得点に応じて下から空色で満たされる */
+.nameplate {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5vh 0;
+  background: transparent;
+  container-type: size;
+  transition: filter 0.4s;
+}
+.nameplate .name {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: min(58cqw, calc(88cqh / var(--len, 4)), 9vh);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: var(--text);
+}
+/* 縁取りは充填の上に重ねる線で描く (実際の border だと端数ピクセルで充填との間に隙間が出る) */
+.nameplate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0.5vh solid var(--sky);
+  pointer-events: none;
+}
+/* 充填レイヤー: 同じ位置に濃紺の名前を重ね、--p の高さぶんだけ下から見せる */
+.nameplate .fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5vh 0;
+  background: var(--sky);
+  clip-path: inset(calc(100% - var(--p, 0%)) 0 0 0);
+  transition: clip-path 0.8s var(--ease);
+}
+.nameplate .fill .name { color: var(--ink); }
+
+/* スコア数表示 */
+.score-display {
+  width: 100%;
+  height: 12vh;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--num);
+  font-size: min(10vh, calc(150cqw / var(--digits, 2)));
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 誤答カウンター */
+.penalty-display {
+  width: 100%;
+  height: 8vh;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2em;
+  font-family: var(--num);
+  font-size: min(6.2vh, calc(92cqw / var(--xn, 3)));
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+.penalty-display .x { color: rgba(255, 255, 255, 0.16); font-weight: 400; }
+.penalty-display .x.on { color: var(--wrong); font-weight: 600; }
+.penalty-display .o { color: var(--sky); margin-right: 0.4em; }
+
+.penalty-display.formula { font-size: min(3.4vh, 14cqw); gap: 0; }
+.penalty-display .op { color: var(--text); }
+.penalty-display .o + .op { margin: 0 0.25em; }
+
+/* Swedish10: 2行×5列のバツ表示 */
+.penalty-display.swedish {
+  height: 9.6vh;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 0;
+  padding: 0 4%;
+  font-size: min(3.6vh, 15cqw);
+}
+body.show-q .penalty-display.swedish { height: 8.4vh; }
+.penalty-display.swedish .m { color: rgba(255, 255, 255, 0.85); line-height: 1; font-weight: 400; }
+.penalty-display.swedish .m.x.on { color: var(--wrong); font-weight: 700; }
+.penalty-display.swedish .m.next { color: #ff9f1c; font-weight: 700; }
+
+/* 状態 */
+.player-column.is-win { border-color: #ffd400; box-shadow: 0 0 0 1px #ffd400; }
+/* 勝ち抜け枠は内側に太く (子要素の上に重ねる) */
+.player-column.is-win::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 0.6vh solid #ffd400;
+  pointer-events: none;
+}
+.player-column.is-win .score-display { color: var(--sky); letter-spacing: 0.04em; }
+.player-column.is-lose .nameplate { filter: grayscale(1) brightness(0.5); }
+.player-column.is-lose .score-display { color: rgba(255, 255, 255, 0.28); }
+.player-column.is-rest .nameplate { filter: saturate(0.4) brightness(0.6); }
+
+/* 演出 (平面的なリングと動きだけで見せる) */
+.player-column.anim-correct { animation: flash-correct 0.9s ease-out; }
+.player-column.anim-correct .score-display { animation: pop 0.6s ease-out; }
+.player-column.anim-wrong { animation: shake 0.7s ease-in-out; }
+.player-column.anim-wrong::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 40, 80, 0.4);
+  animation: fade-out 0.7s ease-out forwards;
+  pointer-events: none;
+}
+.player-column.anim-win { animation: win-ring 1.6s ease-out; }
+.player-column.anim-win .status-badge { animation: badge-in 0.7s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.player-column.anim-lose { animation: shake 0.6s ease-in-out; }
+.player-column.anim-lose .status-badge { animation: badge-in 0.5s ease-out; }
+
+@keyframes flash-correct {
+  0% { box-shadow: 0 0 0 0.8vh var(--sky); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35); color: var(--sky); }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-1.2vh); }
+  40% { transform: translateX(1.2vh); }
+  60% { transform: translateX(-0.8vh); }
+  80% { transform: translateX(0.8vh); }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes win-ring {
+  0% { box-shadow: 0 0 0 0 #ffd400; transform: translateY(0); }
+  25% { box-shadow: 0 0 0 1.2vh #ffd400; transform: translateY(-1.5vh); }
+  100% { box-shadow: 0 0 0 1px #ffd400; transform: translateY(0); }
+}
+@keyframes badge-in {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+@keyframes chain-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* オープニング: 真っ暗 → 上部にルール名 → プレイヤーを1人ずつ */
+body.staging .board-title,
+body.staging .board-rule,
+body.staging .board-head-right,
+body.staging .board-question,
+body.staging .player-column:not(.shown) { opacity: 0; }
+body.staging .board-header::after { transform: scaleX(0); }
+
+body.staging.rule-in .board-rule { animation: rule-in 1.3s var(--ease) forwards; }
+body.staging.rule-in .board-header::after { animation: line-draw 1.4s cubic-bezier(0.7, 0, 0.2, 1) 0.2s forwards; }
+body.staging.head-in .board-title,
+body.staging.head-in .board-head-right,
+body.staging.head-in .board-question { animation: fade-up 0.8s var(--ease) forwards; }
+
+.player-column.shown { animation: col-in 0.8s var(--ease) both; }
+.player-column.shown .nameplate { animation: plate-wipe 0.9s cubic-bezier(0.7, 0, 0.2, 1) both; }
+.player-column.shown .name { animation: fade-up 0.7s var(--ease) 0.45s both; }
+.player-column.shown .status-badge,
+.player-column.shown .score-display,
+.player-column.shown .penalty-display { animation: fade-in 0.6s ease-out 0.7s both; }
+
+@keyframes rule-in {
+  from { opacity: 0; transform: translateY(2.5vh); letter-spacing: 0.3em; }
+  to { opacity: 1; transform: none; }
+}
+@keyframes line-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(1.5vh); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes col-in {
+  from { opacity: 0; transform: translateY(4vh); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes plate-wipe {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-column[class*="anim-"],
+  .player-column[class*="anim-"] * { animation-duration: 0.01s !important; }
+}
+
+/* QR オーバーレイ */
+.qr-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 9, 0.92);
+  z-index: 10;
+}
+.qr-card {
+  background: #fff;
+  color: #000;
+  padding: 4vh;
+  text-align: center;
+}
+.qr-card p { margin: 2vh 0 0; font-size: 3.5vh; }
+.screen-qr img, .screen-qr canvas { display: block; margin: 0 auto; }
+
+.hint {
+  position: fixed;
+  right: 1.5vw;
+  bottom: 1.2vh;
+  z-index: 2;
+  font-size: 1.5vh;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  transition: opacity 1s;
+}
+.hint.fade { opacity: 0; }
+[hidden] { display: none !important; }
+
+/* 勝ち抜けた人のネームプレートは黄色 */
+.player-column.is-win .nameplate::after { border-color: #ffd400; }
+.player-column.is-win .nameplate .fill { background: #ffd400; }
+
+/* 観客ビューアへの埋め込み時は操作ヒントを出さない */
+html.embed .hint { display: none; }

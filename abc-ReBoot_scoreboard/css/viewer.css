@@ -121,6 +121,52 @@ body {
 }
 .hitem .expl { font-size: 0.9rem; color: var(--muted); }
 
+/* タブ */
+.tabs {
+  position: sticky;
+  top: 41px;
+  z-index: 1;
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.tab {
+  flex: 1;
+  padding: 11px 0;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* スコアボード (screen.html を埋め込み。縦向きのときは横向きに回転して表示) */
+body.on-board { overflow: hidden; }
+.boardpane {
+  position: fixed;
+  top: var(--board-top, 85px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: #000;
+}
+.boardframe { border: 0; background: #000; width: 100%; height: 100%; display: block; }
+@media (orientation: portrait) {
+  .boardframe {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: calc(100vh - var(--board-top, 85px));
+    height: 100vw;
+    transform-origin: top left;
+    transform: rotate(90deg);
+  }
+}
+
 .flash { animation: flash 0.6s ease-out; }
 @keyframes flash {
   0% { transform: scale(0.97); opacity: 0.4; }
