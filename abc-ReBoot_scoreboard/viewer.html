@@ -6,21 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111318">
   <title>問題ビューア</title>
-  <link rel="stylesheet" href="css/viewer.css?v=4">
+  <link rel="stylesheet" href="css/viewer.css?v=6">
 </head>
 <body>
-  <header class="vheader">
-    <div id="title" class="vtitle">クイズ</div>
+  <header id="vheader" class="vheader">
+    <nav id="tabs" class="tabs" role="tablist">
+      <button id="tabQ" class="tab active" role="tab" aria-selected="true" data-tab="q">問題</button>
+      <button id="tabB" class="tab" role="tab" aria-selected="false" data-tab="b">スコアボード</button>
+    </nav>
     <div class="conn"><span id="connDot" class="dot"></span><span id="connText">接続中…</span></div>
   </header>
 
-  <nav id="tabs" class="tabs" role="tablist">
-    <button id="tabQ" class="tab active" role="tab" aria-selected="true" data-tab="q">問題</button>
-    <button id="tabB" class="tab" role="tab" aria-selected="false" data-tab="b">スコアボード</button>
-  </nav>
-
   <div id="paneB" class="boardpane" hidden>
-    <iframe id="boardFrame" class="boardframe" title="スコアボード"></iframe>
+    <div id="boardStage" class="boardstage"><iframe id="boardFrame" class="boardframe" title="スコアボード"></iframe></div>
   </div>
 
   <main id="paneQ" class="vmain">
@@ -44,8 +42,8 @@
     </section>
   </main>
 
-  <script src="js/config.js?v=4"></script>
-  <script src="js/core.js?v=4"></script>
-  <script src="js/viewer.js?v=4"></script>
+  <script src="js/config.js?v=6"></script>
+  <script src="js/core.js?v=6"></script>
+  <script src="js/viewer.js?v=6"></script>
 </body>
 </html>
