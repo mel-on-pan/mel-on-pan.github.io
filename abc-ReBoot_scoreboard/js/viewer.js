@@ -76,13 +76,17 @@
 
   function renderBoard(b) {
     if (b) lastBoard = b;
-    // 運営が「スクリーン」の配信を止めているとき (b.off) は、メンテナンス中と表示する
-    $('boardOff').hidden = !(lastBoard && lastBoard.off);
     postBoard();
   }
 
   function postBoard() {
-    if (!lastBoard || lastBoard.off || !frame.contentWindow) return;
+    if (!lastBoard || !frame.contentWindow) return;
+    // 運営が「スクリーン」の配信を止めているとき (メンテナンス中など) は、盤面を送らず、常に待機画面を映す
+    if (lastBoard.off) {
+      const sb = lastBoard.standby || {};
+      frame.contentWindow.postMessage({ type: 'QB_STATE', state: { players: [], settings: { title: sb.title || '' }, scene: { type: 'standby', step: 0, title: sb.title || '', data: { next: sb.next || {} } } } }, location.origin);
+      return;
+    }
     frame.contentWindow.postMessage({ type: 'QB_STATE', state: lastBoard }, location.origin);
   }
   frame.addEventListener('load', postBoard);
@@ -131,7 +135,7 @@
     }
     document.body.classList.toggle('on-board', isB);
     layoutBoard();
-    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=7');
+    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=8');
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
