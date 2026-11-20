@@ -69,7 +69,7 @@
   }
 
   // ---------- スコアボードタブ ----------
-  // screen.html を iframe で埋め込み、受信した盤面を postMessage で渡す (表示は運営のスコアボードと同じ)
+  // screen.html を iframe で埋め込み、受信した盤面を postMessage で渡す (スクリーンと同じ画面。場面・タイマーも含む)
 
   const frame = $('boardFrame');
   let lastBoard = null;
@@ -129,7 +129,7 @@
     }
     document.body.classList.toggle('on-board', isB);
     layoutBoard();
-    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=4');
+    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=5');
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => showTab(btn.dataset.tab)));

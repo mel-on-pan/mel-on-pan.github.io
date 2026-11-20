@@ -563,3 +563,188 @@ body.staging.head-in .board-question { animation: fade-up 0.8s var(--ease) forwa
 
 /* 観客ビューアへの埋め込み時は操作ヒントを出さない */
 html.embed .hint { display: none; }
+
+/* ---------- 場面 (待機・大型タイマー・ターンオーバー) ---------- */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3vh;
+  padding: 4vh 4vw;
+  background: var(--bg);
+  text-align: center;
+}
+.scene[hidden] { display: none; }
+.scene-logo { height: 24vh; width: auto; }
+.scene-title { font-size: 7vh; letter-spacing: 0.08em; }
+.scene-sub { font-size: 4vh; color: var(--sky); letter-spacing: 0.3em; }
+/* 大型タイマー (1R ペーパークイズ) */
+.scene-timer .scene-title { font-size: 6vh; color: var(--sky); letter-spacing: 0.2em; }
+.scene-clock {
+  font-family: var(--num);
+  font-size: 46vh;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.scene-clock.paused { color: var(--muted); }
+.scene-clock.warn { color: #ff9f1c; }
+.scene-clock.over { color: var(--wrong); animation: timer-blink 1s steps(2, start) infinite; }
+/* ターンオーバー: 黒い四角 (縁は順位の色、順位は白字) が回転して登場 → 180度回って名前面へ → 回転しながら消える。
+   グループの全員が同時に動く。人数に合わせて画面を区画に分け (.to-stage の --cols / --rows)、1枚の大きさは --k 倍 (screen.js の layoutTurnover)。
+   動きは screen.js (playStep) が付ける。.to-fade は透明度、.to-card は3D回転 (opacity と preserve-3d は同じ要素に置けない) */
+.scene-turnover { padding: 0; }
+.to-stage {
+  --k: 1;
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  padding: 5vh;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  grid-template-rows: repeat(var(--rows, 1), 1fr);
+  gap: 3vh;
+}
+.to-slot { position: relative; min-width: 0; min-height: 0; }
+/* 透視 (perspective) は、3D回転するカードの直接の親に付ける (祖父に付けても効かない) */
+.to-fade { position: absolute; inset: 0; opacity: 0; perspective: 120vh; }
+.to-card { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; transform: rotateY(-90deg) scale(0.15); }
+/* 何回転もする登場・退場の間だけ使う、両面が同じ見た目の回転用カード (screen.js の makeSpinner) */
+.to-spinwrap { position: absolute; inset: 0; perspective: 120vh; }
+.to-spin { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+.to-face {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: calc(1vh * var(--k)) solid var(--tier);
+  background: #000;
+  color: #fff;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 0 calc(2.4vh * var(--k)) var(--tier), inset 0 0 calc(2vh * var(--k)) rgba(255, 255, 255, 0.04);
+}
+/* 順位面: 正方形 */
+.to-front { width: calc(38vh * var(--k)); height: calc(38vh * var(--k)); left: calc(-19vh * var(--k)); top: calc(-19vh * var(--k)); }
+.tc-rank { font-family: var(--num); font-size: calc(19vh * var(--k)); font-weight: 600; line-height: 1; letter-spacing: 0.02em; white-space: nowrap; }
+.tc-rank small { font-size: 0.42em; font-weight: 500; margin-left: 0.06em; }
+/* 名前面: 横長 (裏側なので、あらかじめ180度回しておく) */
+.to-back { width: calc(92vh * var(--k)); height: calc(38vh * var(--k)); left: calc(-46vh * var(--k)); top: calc(-19vh * var(--k)); transform: rotateY(180deg); padding: 0 calc(4vh * var(--k)); }
+.tc-name { max-width: 100%; font-size: calc(13vh * var(--k)); font-weight: 800; line-height: 1.1; letter-spacing: 0.08em; white-space: nowrap; }
+.to-rank { font-family: var(--num); font-size: 5vh; font-weight: 600; min-width: 3.1ch; white-space: nowrap; }
+.to-rank small { font-size: 0.55em; font-weight: 500; margin-left: 0.05em; }
+.to-name { font-size: 4.2vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tier-red { --tier: #CC0000; }
+.tier-blue { --tier: #0044CC; }
+.tier-yellow { --tier: #C9A000; }
+.tier-green { --tier: #008833; }
+.tier-purple { --tier: #6A1B9A; }
+@keyframes to-in { from { opacity: 0; transform: translateY(2vh) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* ---------- ルーレット (3R: 組ごとのルールを決める) ---------- */
+.scene-roulette { justify-content: flex-start; align-items: stretch; gap: 2vh; padding: 2.5vh 2.5vw; text-align: left; }
+.rl-top { display: flex; flex-direction: column; align-items: center; gap: 1vh; }
+.rl-label { font-size: 3.4vh; color: var(--sky); letter-spacing: 0.2em; }
+/* スロットの窓: 高さは項目1つぶん。ルール名を縦に並べた帯 (.reel-strip) が上から下へ流れて、窓いっぱいの項目で止まる。
+   窓の外は見えないので、止まったときは必ず窓の中央にルール名が収まる (窓の中に線や上下の項目は出ない) */
+.rl-reel {
+  --reel-h: 13vh; /* 窓の外寸 (枠線を含む) */
+  --reel-bd: 0.6vh; /* 枠線の太さ */
+  position: relative;
+  width: 64vw;
+  height: var(--reel-h);
+  overflow: hidden;
+  border: var(--reel-bd) solid var(--sky);
+  border-radius: 1.4vh;
+  background: #0a1220;
+  box-shadow: inset 0 0 3vh rgba(143, 211, 255, 0.25);
+}
+.reel-strip { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+.reel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--reel-h) - 2 * var(--reel-bd)); /* 窓の内側の高さと同じ */
+  font-family: var(--num);
+  font-size: 7.6vh;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.reel-item.landed { color: #ffd400; animation: reel-land 0.7s var(--ease); }
+@keyframes reel-land { 0% { transform: scale(1.35); filter: brightness(2); } 100% { transform: none; filter: none; } }
+.rl-rules { display: flex; gap: 1.6vw; }
+.rl-rule { display: inline-flex; align-items: baseline; gap: 0.8vw; padding: 0.4vh 1.4vw; border: 0.3vh solid var(--sky); border-radius: 999px; font-size: 3vh; }
+.rl-rule small { font-size: 2.2vh; color: var(--sky); }
+.rl-rule.used { opacity: 0.35; text-decoration: line-through; border-color: var(--line); }
+.rl-rule.used small { text-decoration: none; }
+.rl-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.55fr 1fr; gap: 2vw; }
+/* 左: 20人。決まった人は薄くなって、行き先の組の名前が付く */
+.rl-pool { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1vh 0.7vw; min-height: 0; }
+/* スコアボードと同じ: 黒地 + 空色の枠線。順位の部分だけプレートの色 (赤・青・黄・緑) */
+.rl-plate {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
+  border: 0.4vh solid var(--sky);
+  background: transparent;
+  color: var(--text);
+  transition: opacity 0.5s, filter 0.5s;
+}
+.rl-plate .to-rank,
+.rl-slot.filled .to-rank {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4ch;
+  padding: 0 0.5vw;
+  background: var(--tier);
+  color: #fff;
+}
+.rl-plate .to-rank { font-size: 2.9vh; }
+.rl-plate .to-name { align-self: center; flex: 1; min-width: 0; padding: 0 0.7vw; font-size: 2.6vh; font-weight: 800; }
+.rl-tag { position: absolute; right: 0.5vw; bottom: 0.2vh; font-size: 1.7vh; font-family: var(--num); background: rgba(0, 0, 0, 0.55); padding: 0 0.5vw; border-radius: 0.5vh; }
+.rl-plate.assigned { opacity: 0.38; filter: saturate(0.6); }
+.rl-plate.just { animation: rl-just 1.2s var(--ease); }
+@keyframes rl-just { 0% { opacity: 1; filter: none; transform: scale(1.12); box-shadow: 0 0 3vh #ffd400; } 100% { transform: none; } }
+/* 右: 4組。ルールと、決まった5人 */
+.rl-cards { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1.4vh 1vw; min-height: 0; }
+.rl-card { display: flex; flex-direction: column; gap: 0.5vh; min-height: 0; padding: 0.8vh 0.8vw; border: 0.3vh solid var(--line); border-radius: 1vh; background: var(--panel); }
+.rl-card.done { border-color: #ffd400; }
+.rl-card-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 2.2vh; color: var(--muted); }
+.rl-card-head b { font-size: 3.2vh; color: var(--text); }
+.rl-slot { flex: 1; min-height: 0; display: flex; align-items: stretch; overflow: hidden; border: 0.3vh dashed rgba(143, 211, 255, 0.25); }
+.rl-slot.filled { border: 0.3vh solid var(--sky); color: var(--text); animation: to-in 0.5s var(--ease) both; }
+.rl-slot .to-rank { font-size: 2.3vh; }
+.rl-slot .to-name { align-self: center; flex: 1; min-width: 0; padding: 0 0.6vw; font-size: 2.3vh; font-weight: 800; }
+
+/* ---------- Extra Round 1st step (問題と解答) ---------- */
+.scene-revival { padding: 0; }
+.rv-stage { position: absolute; inset: 0; display: none; flex-direction: column; gap: 2.4vh; box-sizing: border-box; padding: 4.5vh 5vw 5vh; text-align: left; }
+.rv-stage.on { display: flex; }
+/* 最初の問題を出す前は、見出し (タイトルと水色の線) だけ。問題と解答は見えない */
+.rv-stage.blank .rv-q, .rv-stage.blank .rv-a { visibility: hidden; }
+.rv-head { display: flex; justify-content: space-between; align-items: baseline; color: var(--sky); border-bottom: 0.5vh solid var(--sky); padding-bottom: 1.2vh; }
+.rv-title { font-size: 3.4vh; letter-spacing: 0.2em; }
+.rv-no { font-family: var(--num); font-size: 9vh; font-weight: 600; line-height: 1; letter-spacing: 0.04em; }
+/* 問題番号が空 (最初の問題を出す前) でも、見えない「Q.0」で場所を確保して、見出しと水色の線の位置を、問題番号が出ているときと同じにする */
+.rv-no:empty::before { content: "Q.0"; visibility: hidden; }
+/* 問題: 画面の主役。長い問題は、枠に収まる大きさまで文字を小さくする (screen.js の fitTextInBox) */
+.rv-q { flex: 1; min-height: 0; display: flex; align-items: center; }
+.rv-q.in { animation: rv-in 0.5s var(--ease) both; }
+.rv-qtext { margin: 0; width: 100%; font-weight: 800; line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+/* 解答: 問題の下に、同じ問題のまま「解答」に進んだときだけ現れる */
+.rv-a { height: 22vh; display: flex; align-items: center; gap: 2vw; border-top: 0.4vh solid rgba(143, 211, 255, 0.35); opacity: 0; transform: translateY(2vh); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); }
+.rv-stage.show-a .rv-a { opacity: 1; transform: none; }
+.rv-tag { flex: none; display: flex; align-items: center; justify-content: center; width: 8vh; height: 8vh; border-radius: 50%; font-family: var(--num); font-size: 5vh; font-weight: 700; background: var(--sky); color: var(--ink); }
+.rv-atext { margin: 0; flex: 1; font-weight: 800; line-height: 1.3; color: var(--sky); overflow-wrap: anywhere; }
+@keyframes rv-in { from { opacity: 0; transform: translateY(2.5vh); } to { opacity: 1; transform: none; } }

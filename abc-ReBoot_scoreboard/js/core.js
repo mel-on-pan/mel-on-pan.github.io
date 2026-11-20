@@ -53,6 +53,7 @@
       chain: false, // 連答権の有無 (連答付きルール)
       status: 'active', // 'active' | 'win' | 'lose'
       rank: 0, // 勝ち抜け順
+      manualWin: false, // 判定勝ち (運営が手動で勝ち抜けにした。得点での再判定で取り消さない)
       seed: Number.isInteger(seed) && seed > 0 ? seed : 0, // 運営が設定する順位 (0 = 未設定)
       restUntil: -1, // この問題番号まで休み
       restFrom: -1, // 休みが決まった (誤答した) 問題番号
@@ -71,6 +72,17 @@
 
   function hasTimer(rule) {
     return TIMER_RULES.includes(rule);
+  }
+
+  /** タイマーを使う状態か (Number10 系ルール、または大型タイマーの場面) */
+  function timerActive(st) {
+    return hasTimer(st.settings.rule) || (st.scene && st.scene.type === 'timer');
+  }
+
+  /** ペーパー順位ごとのアド (2R用): 赤3 / 青2 / 黄1 / それ以外0。順位なしは0 */
+  const TIER_ADVANTAGE = { red: 3, blue: 2, yellow: 1, green: 0, purple: 0 };
+  function tierAdvantage(seed) {
+    return seed > 0 ? TIER_ADVANTAGE[seedTier(seed)] || 0 : 0;
   }
 
   /** 現在の残り時間 (ms) */
@@ -97,6 +109,8 @@
       screenQr: { visible: false, url: '' },
       screenQ: { visible: false, question: '', answer: '' }, // スコアボードへの問題表示 (通信障害時用)
       timer: defaultTimer(),
+      // スクリーンに出す場面。'board' = スコアボード (通常) / 'standby' 待機 / 'timer' 大型タイマー / 'turnover' ターンオーバー
+      scene: { type: 'board', step: 0, title: '', data: null },
       event: null, // { seq, type, playerId } 演出用の直近イベント
       seq: 0,
       updatedAt: Date.now(),
@@ -111,6 +125,7 @@
       screenQr: Object.assign(base.screenQr, raw.screenQr || {}),
       screenQ: Object.assign(base.screenQ, raw.screenQ || {}),
       timer: Object.assign(base.timer, raw.timer || {}),
+      scene: Object.assign(base.scene, raw.scene || {}),
     });
   }
 
@@ -218,7 +233,7 @@
   function evaluate(st, p) {
     const won = hasWon(st, p);
     const lost = hasLost(st, p);
-    if (p.status === 'win' && !won) {
+    if (p.status === 'win' && !won && !p.manualWin) {
       p.status = 'active';
       p.rank = 0;
     }
@@ -334,6 +349,7 @@
         question: q.question,
         answer: q.answer,
         explanation: typeof q.explanation === 'string' ? q.explanation : '',
+        row: Number.isInteger(q.row) && q.row > 0 ? q.row : 0, // スプレッドシート上の行番号 (0 = シート由来でない)
       };
     });
   }
@@ -388,12 +404,15 @@
     swedishPenalty,
     defaultTimer,
     hasTimer,
+    timerActive,
+    tierAdvantage,
     timerRemaining,
     timerText,
     isResting,
     survivorsText,
     restLeft,
     evaluate,
+    nextRank,
     badge,
     ordinal,
     seedTier,
