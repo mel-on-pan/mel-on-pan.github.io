@@ -279,7 +279,7 @@
       const a = String(n.a || '').trim();
       // 時刻と開始予定の内容が両方入っているときだけ「Next→…」の文を出す (空なら出さない)
       const next = time && what ? '<div class="scene-next">Next→' + (a ? e(a) + '：' : '') + e(time) + 'から' + e(what) + 'を開始予定</div>' : '';
-      return logo + '<div class="scene-title">' + e(sc.title || st.settings.title) + '</div><div class="scene-sub">まもなく開会します</div>' + next;
+      return logo + '<div class="scene-title">' + e(sc.title || st.settings.title) + '</div>' + next;
     }
     if (sc.type === 'timer') {
       return '<div class="scene-title">' + e(sc.title) + '</div><div id="sceneClock" class="scene-clock"></div>';

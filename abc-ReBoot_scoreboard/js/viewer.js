@@ -131,7 +131,7 @@
     }
     document.body.classList.toggle('on-board', isB);
     layoutBoard();
-    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=6');
+    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=7');
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
