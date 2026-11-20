@@ -76,11 +76,13 @@
 
   function renderBoard(b) {
     if (b) lastBoard = b;
+    // 運営が「スクリーン」の配信を止めているとき (b.off) は、メンテナンス中と表示する
+    $('boardOff').hidden = !(lastBoard && lastBoard.off);
     postBoard();
   }
 
   function postBoard() {
-    if (!lastBoard || !frame.contentWindow) return;
+    if (!lastBoard || lastBoard.off || !frame.contentWindow) return;
     frame.contentWindow.postMessage({ type: 'QB_STATE', state: lastBoard }, location.origin);
   }
   frame.addEventListener('load', postBoard);
@@ -129,7 +131,7 @@
     }
     document.body.classList.toggle('on-board', isB);
     layoutBoard();
-    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=5');
+    if (isB && !frame.getAttribute('src')) frame.setAttribute('src', 'screen.html?embed=1&v=6');
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach((btn) => btn.addEventListener('click', () => showTab(btn.dataset.tab)));

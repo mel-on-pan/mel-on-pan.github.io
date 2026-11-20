@@ -197,3 +197,6 @@ body.on-board { overflow: hidden; }
   .flash, .dot.wait { animation: none; }
 }
 [hidden] { display: none !important; }
+/* スクリーンの配信を止めているとき (メンテナンス中) */
+.boardoff { position: fixed; top: var(--board-top, 0px); left: var(--board-left, 0px); right: 0; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #0a0c10; color: #cfd6e4; font-size: 1.1rem; line-height: 1.8; }
+.boardoff[hidden] { display: none; }

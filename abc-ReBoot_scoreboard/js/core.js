@@ -107,6 +107,8 @@
       qBlank: false, // ルール変更・プレイヤー再設定の直後 (次に問題を動かすまで問題表示を空にする)
       qFloor: 0, // 観客ビューアの履歴はこの番号より後の問題だけ出す
       screenQr: { visible: false, url: '' },
+      screenCast: true, // 観客用スマホの「スクリーン」タブへの配信 (オフ = メンテナンス中の表示)
+      standbyNext: { a: '', time: '', what: '' }, // 待機画面の「Next→」の文 (見出し・時刻・開始予定の内容)
       screenQ: { visible: false, question: '', answer: '' }, // スコアボードへの問題表示 (通信障害時用)
       timer: defaultTimer(),
       // スクリーンに出す場面。'board' = スコアボード (通常) / 'standby' 待機 / 'timer' 大型タイマー / 'turnover' ターンオーバー
@@ -123,6 +125,7 @@
     return Object.assign(base, raw, {
       settings: Object.assign(defaultSettings(), raw.settings || {}, { n: 10 }), // NbyN は 10by10 固定
       screenQr: Object.assign(base.screenQr, raw.screenQr || {}),
+      standbyNext: Object.assign(base.standbyNext, raw.standbyNext || {}),
       screenQ: Object.assign(base.screenQ, raw.screenQ || {}),
       timer: Object.assign(base.timer, raw.timer || {}),
       scene: Object.assign(base.scene, raw.scene || {}),

@@ -273,7 +273,13 @@
     const logo = '<img class="scene-logo" src="reboot_logo_dark.png" alt="abc ReBoot">';
     if (sc.type === 'roulette') return rouletteHTML(st);
     if (sc.type === 'standby') {
-      return logo + '<div class="scene-title">' + e(sc.title || st.settings.title) + '</div><div class="scene-sub">まもなく開会します</div>';
+      const n = (sc.data && sc.data.next) || {};
+      const time = String(n.time || '').trim();
+      const what = String(n.what || '').trim();
+      const a = String(n.a || '').trim();
+      // 時刻と開始予定の内容が両方入っているときだけ「Next→…」の文を出す (空なら出さない)
+      const next = time && what ? '<div class="scene-next">Next→' + (a ? e(a) + '：' : '') + e(time) + 'から' + e(what) + 'を開始予定</div>' : '';
+      return logo + '<div class="scene-title">' + e(sc.title || st.settings.title) + '</div><div class="scene-sub">まもなく開会します</div>' + next;
     }
     if (sc.type === 'timer') {
       return '<div class="scene-title">' + e(sc.title) + '</div><div id="sceneClock" class="scene-clock"></div>';
