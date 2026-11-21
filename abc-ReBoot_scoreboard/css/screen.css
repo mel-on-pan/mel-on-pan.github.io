@@ -784,22 +784,18 @@ html.embed .hint { display: none; }
 .scene-champion {
   gap: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse 70% 60% at 50% 44%, #12385c 0%, #0a1c30 45%, var(--bg) 100%);
+  background: linear-gradient(180deg, #05080e 0%, #07101b 55%, #0a1829 100%);
 }
 .scene-champion > * { position: relative; z-index: 1; }
-/* 中央から広がるゆっくり回る光の筋 */
+/* 足元からの間接照明: 床に置いた照明が壁を照らすように、下端がいちばん明るく、上へ向かってなだらかに暗くなる */
 .scene-champion .ch-rays {
   position: absolute;
   z-index: 0;
-  left: 50%;
-  top: 44%;
-  width: 240vmax;
-  height: 240vmax;
-  margin: -120vmax 0 0 -120vmax;
-  background: repeating-conic-gradient(from 0deg, rgba(143, 211, 255, 0.16) 0deg 4deg, transparent 4deg 15deg);
-  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 28%);
-  mask-image: radial-gradient(circle, #000 0%, transparent 28%);
-  animation: ch-spin 160s linear infinite, ch-fade 2.4s ease-out both;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 34% at 50% 100%, rgba(190, 228, 255, 0.44) 0%, rgba(143, 211, 255, 0.2) 45%, rgba(143, 211, 255, 0) 100%),
+    radial-gradient(ellipse 112% 80% at 50% 114%, rgba(70, 150, 215, 0.58) 0%, rgba(42, 100, 165, 0.3) 44%, rgba(20, 60, 110, 0) 100%);
+  animation: ch-fade 3.2s ease-out both;
 }
 /* 金の二重の細い枠 */
 .scene-champion .ch-frame {
@@ -869,7 +865,6 @@ html.embed .hint { display: none; }
   text-shadow: 0 0 3vh rgba(143, 211, 255, 0.35);
   animation: ch-rise 1.2s var(--ease) 2.6s both;
 }
-@keyframes ch-spin { to { transform: rotate(360deg); } }
 @keyframes ch-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ch-rise { from { opacity: 0; transform: translateY(3vh); } to { opacity: 1; transform: none; } }
 @keyframes ch-title-in { from { opacity: 0; letter-spacing: 0.6em; filter: blur(1.4vh) drop-shadow(0 0 2.4vh rgba(255, 212, 0, 0.45)); } to { opacity: 1; letter-spacing: 0.14em; filter: blur(0) drop-shadow(0 0 2.4vh rgba(255, 212, 0, 0.45)); } }

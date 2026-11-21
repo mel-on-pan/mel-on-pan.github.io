@@ -312,6 +312,16 @@
 
   /** プレートの名前が枠に収まらないときは、文字サイズを少しずつ小さくして収める (下限は元の40%) */
   function fitNames(root) {
+    // 優勝の場面: 名前が長いときは、画面の幅に収まるまで小さくする (ウィンドウの大きさが変わったときも、ここで直す)
+    root.querySelectorAll('.ch-name').forEach((el) => {
+      el.style.fontSize = '';
+      const base = parseFloat(getComputedStyle(el).fontSize);
+      let size = base;
+      while (el.scrollWidth > el.clientWidth + 1 && size > base * 0.4) {
+        size -= 1;
+        el.style.fontSize = size + 'px';
+      }
+    });
     root.querySelectorAll('.to-name').forEach((el) => {
       el.style.fontSize = '';
       const base = parseFloat(getComputedStyle(el).fontSize);
@@ -803,18 +813,6 @@
     el.className = 'scene scene-' + sc.type;
     el.innerHTML = sceneHTML(st);
     fitNames(el);
-    if (sc.type === 'champion') {
-      // 名前が長いときは、画面の幅に収まるまで小さくする
-      const nm = el.querySelector('.ch-name');
-      if (nm) {
-        const base = parseFloat(getComputedStyle(nm).fontSize);
-        let size = base;
-        while (nm.scrollWidth > nm.clientWidth + 1 && size > base * 0.4) {
-          size -= 1;
-          nm.style.fontSize = size + 'px';
-        }
-      }
-    }
     // スロットの演出中に作り直された場合も、続きから回す
     if (sc.type === 'roulette') {
       reelJustLanded = false;
