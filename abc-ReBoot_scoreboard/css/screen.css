@@ -1,5 +1,6 @@
 /* メインスクリーン (プロジェクター用 16:9)
- * 方針: マットで平面的。黒地 + 空色の線。角丸・光沢・グラデーション・発光・金色は使わない。 */
+ * 方針: 濃紺の地 + 空色の線。プレートには、ごく控えめな陰影と段差で奥行きを付ける (ファイルの最後の「スコアボードの奥行き」)。
+ * 光らせたり、きらきらさせたりはしない。金色は、勝ち抜けと優勝の場面だけに使う。 */
 :root {
   --bg: #07090d;
   --panel: #0e1218;
@@ -912,3 +913,61 @@ body.se-entry .score-display { visibility: hidden; } /* 入場の間は、ポイ
 .se-alias { font-size: 4.8vh; font-weight: 700; letter-spacing: 0.22em; color: #ffd400; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .se-wname { margin-top: 0.8vh; max-width: 100%; font-size: 14vh; font-weight: 800; line-height: 1.15; letter-spacing: 0.1em; white-space: nowrap; }
 .se-alias:empty { display: none; }
+
+/* ---------- スコアボードの奥行き ----------
+   優勝画面など、ほかの場面の質感と揃えるため、背景・プレート・バッジ・得点欄にごく控えめな陰影を付ける。動きや発光は足さない */
+:root { --bg-grad: radial-gradient(ellipse 85% 70% at 50% 38%, #0f2237 0%, #0a1523 48%, var(--bg) 100%); }
+html { background: var(--bg); }
+body { background: var(--bg-grad) fixed; }
+.scene:not(.scene-champion):not(.scene-sfentry) { background: var(--bg-grad) fixed; } /* 優勝は専用の背景、SF入場は下のスコアボードを見せる透明 */
+
+/* ヘッダー: 区切り線は右へ向かって薄くなり、文字には薄い影 */
+.board-header::after { height: 0.35vh; background: linear-gradient(90deg, var(--sky) 0%, var(--sky) 55%, rgba(143, 211, 255, 0.3) 100%); }
+.board-rule, .board-timer, .board-survivors, .board-qno { text-shadow: 0 0.35vh 0.8vh rgba(0, 0, 0, 0.55); }
+
+/* プレイヤー列: 手前に浮いた板。上辺は明るく、下辺は暗く、下に影を落とす */
+.player-column {
+  background: linear-gradient(180deg, #151e2b 0%, #0d131c 55%, #0a0f16 100%);
+  border-color: rgba(255, 255, 255, 0.17) rgba(255, 255, 255, 0.07) rgba(0, 0, 0, 0.55) rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1.2vh 2.4vh -0.4vh rgba(0, 0, 0, 0.7);
+}
+.player-column.is-win { box-shadow: 0 0 0 1px #ffd400, 0 1.2vh 2.4vh -0.4vh rgba(0, 0, 0, 0.7); }
+
+/* 順位・状態のバッジ: 上から下へ、うっすら明るい → 暗い。下に細い影の線 */
+.status-badge.rank,
+.status-badge.seed,
+.status-badge.lose,
+.status-badge.rest,
+.status-badge.chain {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, 0.2) 100%);
+  box-shadow: inset 0 -0.3vh 0 rgba(0, 0, 0, 0.28), 0 0.4vh 0.8vh rgba(0, 0, 0, 0.45);
+  text-shadow: 0 0.2vh 0.4vh rgba(0, 0, 0, 0.35);
+}
+.status-badge.rank { text-shadow: none; }
+
+/* ネームプレート: 濃い色ガラスの板。上の縁に光、下に向かって暗く、枠の内側に薄い明るさ */
+.nameplate {
+  background: linear-gradient(180deg, #19263a 0%, #0f1826 50%, #0a111b 100%);
+}
+.nameplate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 24%);
+  pointer-events: none;
+}
+.nameplate::after { box-shadow: inset 0 0 1.6vh rgba(143, 211, 255, 0.2), inset 0 0.25vh 0 rgba(255, 255, 255, 0.35); }
+.nameplate .name, .nameplate .org { text-shadow: 0 0.35vh 0.7vh rgba(0, 0, 0, 0.6); }
+.nameplate .fill .name, .nameplate .fill .org { text-shadow: 0 0.2vh 0 rgba(255, 255, 255, 0.28); }
+/* 得点で満ちる部分: 上が明るく、下が少し深い空色 */
+.nameplate .fill { background: linear-gradient(180deg, #b4e1ff 0%, var(--sky) 38%, #6dbdee 100%); z-index: 1; }
+
+/* 得点欄・誤答欄: 少し沈んだ面 */
+.score-display {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, rgba(0, 0, 0, 0.12) 100%);
+  box-shadow: inset 0 0.35vh 0.7vh rgba(0, 0, 0, 0.45);
+  text-shadow: 0 0.35vh 0.8vh rgba(0, 0, 0, 0.6);
+}
+.penalty-display { background: rgba(0, 0, 0, 0.16); border-top-color: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0.25vh 0.5vh rgba(0, 0, 0, 0.35); }
+.player-column.is-win .nameplate .fill { background: linear-gradient(180deg, #ffe560 0%, #ffd400 45%, #e3b900 100%); }
