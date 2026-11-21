@@ -891,9 +891,6 @@ html.embed .hint { display: none; }
   transition: left 0.7s var(--ease) var(--shift-delay, 0s);
 }
 .se-plate.on { opacity: 1; }
-.se-half { position: absolute; inset: 0; }
-.se-half.top { clip-path: inset(0 0 50% 0); }
-.se-half.bot { clip-path: inset(50% 0 0 0); }
 .se-face {
   position: absolute;
   inset: 0;
@@ -927,10 +924,7 @@ html.embed .hint { display: none; }
 }
 .se-org:empty { display: none; }
 .se-name:has(+ .se-org:not(:empty)) { font-size: min(34cqw, calc(90cqh / var(--len, 4)), 9vh); }
-/* ネームプレートが上下に割れる (横長プレートが開いている間) */
-.se-stage.split .se-half.top { transform: translateY(-20vh); }
-.se-stage.split .se-half.bot { transform: translateY(20vh); }
-/* 横長のプレート: ターンオーバーの名前面と同じ黒地・色枠。二つ名を上に、名前を大きく */
+/* 横長のプレート: ターンオーバーの名前面と同じ黒地・色枠。二つ名を上に、名前を大きく。ネームプレートの上に覆いかぶさる (z-index が上) */
 .se-wide {
   position: absolute;
   z-index: 3;
@@ -948,11 +942,9 @@ html.embed .hint { display: none; }
   align-items: center;
   justify-content: center;
   padding: 0 3vw;
-  transform: scaleY(0);
   opacity: 0;
 }
-.se-stage.split .se-wide { transform: none; opacity: 1; }
+.se-stage.split .se-wide { opacity: 1; }
 .se-alias { font-size: 4.8vh; font-weight: 700; letter-spacing: 0.22em; color: #ffd400; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.se-worg { margin-top: 0.6vh; font-size: 3.4vh; font-weight: 600; letter-spacing: 0.12em; color: var(--sky); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .se-wname { margin-top: 0.8vh; max-width: 100%; font-size: 13vh; font-weight: 800; line-height: 1.15; letter-spacing: 0.1em; white-space: nowrap; }
-.se-alias:empty, .se-worg:empty { display: none; }
+.se-alias:empty { display: none; }

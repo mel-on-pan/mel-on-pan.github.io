@@ -640,13 +640,16 @@
 
   // ---------- SF入場 ----------
   // 真ん中から左右に1人ずつ入場する。1人ずつ、次の2段階で進む (運営パネルの▶):
-  //   2k+1: 並んでいるネームプレートが上下に割れて、その間に横長のプレート (二つ名・名前) が開く
-  //   2k+2: 横長プレートが細い線になって消え、ネームプレートが元に戻りながら、入場する人の分だけ間が空いて、新しいネームプレートが現れる
+  //   2k+1: 並んでいるネームプレートの上に、横長のプレート (二つ名・名前) が、縦に開きながら覆いかぶさる
+  //   2k+2: 横長プレートが縦に閉じながら消え、ネームプレートが入場する人の分だけ間を空け、新しいネームプレートが縦に開きながら現れる
   // scene.data = { players: [{ name, org, alias, seed }] (席順=左から), order: [入場する順の players の番号] }
 
   let seState = null; // { key, step }
-  const SE_SPLIT = '20vh'; // 割れたネームプレートが上下に離れる距離
   const SE_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
+  const SE_CLOSED = 'inset(50% 0 50% 0)'; // 縦に閉じた (中央の線)
+  const SE_OPEN = 'inset(0 0 0 0)';
+  const SE_WIDE_CLOSED = 'inset(50% -4vh 50% -4vh)'; // 横長プレートは、光る縁 (box-shadow) が切れないように少し広げる
+  const SE_WIDE_OPEN = 'inset(-4vh -4vh -4vh -4vh)';
 
   function leaveSfEntry(el) {
     seState = null;
@@ -654,10 +657,6 @@
       el.dataset.mode = '';
       sceneKey = ''; // ほかの場面に戻ったときに作り直す
     }
-  }
-
-  function seHalf(cls) {
-    return '<div class="se-half ' + cls + '"><div class="se-face"><span class="se-name"></span><span class="se-org"></span></div></div>';
   }
 
   function renderSfEntry(st, el) {
@@ -672,8 +671,8 @@
       el.dataset.mode = 'sfentry';
       el.innerHTML =
         '<div class="se-stage">' +
-        players.map((p, i) => '<div class="se-plate" data-i="' + i + '">' + seHalf('top') + seHalf('bot') + '</div>').join('') +
-        '<div class="se-wide"><div class="se-alias"></div><div class="se-worg"></div><div class="se-wname"></div></div>' +
+        players.map((p, i) => '<div class="se-plate" data-i="' + i + '"><div class="se-face"><span class="se-name"></span><span class="se-org"></span></div></div>').join('') +
+        '<div class="se-wide"><div class="se-alias"></div><div class="se-wname"></div></div>' +
         '</div>';
       seState = { key, step: null };
     }
@@ -681,15 +680,13 @@
     const plates = [...stage.querySelectorAll('.se-plate')];
     const wide = stage.querySelector('.se-wide');
 
-    // ネームプレートの文字 (観客用では、入場する段階で名前が届く)
+    // ネームプレートの文字: 名前と大学・学年 (観客用では、入場する段階で届く)
     plates.forEach((pl, i) => {
       const p = players[i] || {};
-      pl.querySelectorAll('.se-name').forEach((x) => {
-        if (x.textContent !== (p.name || '')) x.textContent = p.name || '';
-      });
-      pl.querySelectorAll('.se-org').forEach((x) => {
-        if (x.textContent !== (p.org || '')) x.textContent = p.org || '';
-      });
+      const nm = pl.querySelector('.se-name');
+      const og = pl.querySelector('.se-org');
+      if (nm.textContent !== (p.name || '')) nm.textContent = p.name || '';
+      if (og.textContent !== (p.org || '')) og.textContent = p.org || '';
       pl.style.setProperty('--len', Math.max(3, [...(p.name || '')].length));
       pl.style.setProperty('--olen', Math.max(3, [...(p.org || '')].length));
     });
@@ -701,23 +698,20 @@
     const entered = plates.map((_, i) => i).filter((i) => entryOf(i) >= 0 && (entryOf(i) < e || (entryOf(i) === e && !isWide)));
     const prev = seState.step;
     const animate = prev !== null && step === prev + 1;
-    const newcomer = animate && !isWide ? order[e] : -1; // 今回新しく出るネームプレート
-    const old = entered.filter((i) => i !== newcomer); // 前から並んでいるネームプレート
+    const newcomer = animate && !isWide ? order[e] : -1; // 今回新しく現れるネームプレート
+    const hadPlates = entered.some((i) => i !== newcomer);
 
-    if (!animate) stage.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+    // 同じ段階の状態がもう一度届いたとき (画面間の通信は2経路で届く) は、動いている最中の動きを止めないよう、文字の更新だけにする
+    const same = prev === step;
+    if (!animate && !same) stage.getAnimations({ subtree: true }).forEach((a) => a.cancel());
 
-    // 横長プレートの文字
+    // 横長プレートの文字: 二つ名 (上) と名前
     if (isWide) {
       const p = players[order[e]] || {};
-      const set = (sel, text) => {
-        const x = wide.querySelector(sel);
-        x.textContent = text || '';
-        x.style.fontSize = '';
-      };
-      set('.se-alias', p.alias);
-      set('.se-worg', p.org);
-      set('.se-wname', p.name);
+      wide.querySelector('.se-alias').textContent = p.alias || '';
       const nm = wide.querySelector('.se-wname');
+      nm.textContent = p.name || '';
+      nm.style.fontSize = '';
       const base = parseFloat(getComputedStyle(nm).fontSize);
       let size = base;
       while (nm.scrollWidth > nm.clientWidth + 1 && size > base * 0.4) {
@@ -726,48 +720,30 @@
       }
     }
 
+    if (same) return;
+
     // 並び (入場した人だけ、真ん中に寄せて並べる)。動かないときは、トランジションを使わずに一度に置く
     const m = entered.length;
-    stage.style.setProperty('--shift-delay', animate && !isWide ? '0.35s' : '0s');
+    stage.style.setProperty('--shift-delay', animate && !isWide ? '0.5s' : '0s');
     plates.forEach((pl, i) => {
       const rank = entered.indexOf(i);
-      const instant = !animate || i === newcomer;
-      if (instant) pl.style.transition = 'none';
+      if (!animate || i === newcomer) pl.style.transition = 'none';
       pl.classList.toggle('on', rank >= 0);
       if (rank >= 0) pl.style.setProperty('--dx', String(rank - (m - 1) / 2));
     });
     void stage.offsetWidth; // 一度に置いた分のトランジションを無効にしてから、戻す
     plates.forEach((pl) => (pl.style.transition = ''));
-    stage.classList.toggle('split', isWide);
+    stage.classList.toggle('split', isWide); // 横長プレートを出している間
 
     if (animate) {
-      const halves = (i, side) => plates[i].querySelector('.se-half.' + side);
       if (isWide) {
-        // 並んでいるネームプレートが上下に割れて、その間に横長プレートが開く
-        old.forEach((i) => {
-          halves(i, 'top').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-' + SE_SPLIT + ')' }], { duration: 700, easing: SE_EASE, fill: 'backwards' });
-          halves(i, 'bot').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(' + SE_SPLIT + ')' }], { duration: 700, easing: SE_EASE, fill: 'backwards' });
-        });
-        wide.animate([{ transform: 'scaleY(0)', opacity: 0 }, { transform: 'scaleY(1)', opacity: 1 }], { duration: 700, delay: old.length ? 250 : 0, easing: SE_EASE, fill: 'backwards' });
+        // 横長プレートが、縦に開きながら、ネームプレートの上に覆いかぶさる
+        wide.animate([{ clipPath: SE_WIDE_CLOSED }, { clipPath: SE_WIDE_OPEN }], { duration: 800, easing: SE_EASE, fill: 'backwards' });
       } else {
-        // 横長プレートが細い線になって消える → ネームプレートが元に戻りつつ間が空く → 新しいネームプレートが現れる
-        wide.animate(
-          [
-            { transform: 'scaleY(1)', opacity: 1 },
-            { transform: 'scaleY(0.04)', opacity: 1, offset: 0.7 },
-            { transform: 'scaleY(0.04)', opacity: 0 },
-          ],
-          { duration: 600, easing: 'ease-in' }
-        );
-        old.forEach((i) => {
-          halves(i, 'top').animate([{ transform: 'translateY(-' + SE_SPLIT + ')' }, { transform: 'translateY(0)' }], { duration: 700, delay: 350, easing: SE_EASE, fill: 'backwards' });
-          halves(i, 'bot').animate([{ transform: 'translateY(' + SE_SPLIT + ')' }, { transform: 'translateY(0)' }], { duration: 700, delay: 350, easing: SE_EASE, fill: 'backwards' });
-        });
+        // 横長プレートが縦に閉じながら消える → ネームプレートが間を空ける → 新しいネームプレートが縦に開きながら現れる
+        wide.animate([{ clipPath: SE_WIDE_OPEN, opacity: 1 }, { clipPath: SE_WIDE_CLOSED, opacity: 1 }], { duration: 650, easing: 'cubic-bezier(0.6, 0, 0.3, 1)' });
         if (newcomer >= 0) {
-          plates[newcomer].animate(
-            [{ transform: 'translateX(-50%) scaleY(0)', opacity: 0 }, { transform: 'translateX(-50%) scaleY(1)', opacity: 1 }],
-            { duration: 600, delay: old.length ? 900 : 450, easing: SE_EASE, fill: 'backwards' }
-          );
+          plates[newcomer].animate([{ clipPath: SE_CLOSED }, { clipPath: SE_OPEN }], { duration: 900, delay: hadPlates ? 1150 : 500, easing: SE_EASE, fill: 'backwards' });
         }
       }
     }
