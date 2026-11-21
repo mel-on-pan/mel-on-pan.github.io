@@ -750,5 +750,5 @@ html.embed .hint { display: none; }
 @keyframes rv-in { from { opacity: 0; transform: translateY(2.5vh); } to { opacity: 1; transform: none; } }
 .scene-next { margin-top: 2vh; font-size: 4.4vh; letter-spacing: 0.12em; color: var(--text); border-top: 0.4vh solid rgba(143, 211, 255, 0.5); padding-top: 2.4vh; }
 /* 決勝: 獲得セット数 */
-.set-pips { flex: none; text-align: center; font-size: 4.6vh; letter-spacing: 0.25em; color: #ffd400; line-height: 1.2; min-height: 1.2em; }
+.set-pips { flex: none; box-sizing: border-box; width: 100%; padding: 0 4cqw; overflow: hidden; white-space: nowrap; text-align: center; font-size: min(4.6vh, 22cqw); letter-spacing: 0.06em; text-indent: 0.06em; color: #ffd400; line-height: 1.2; min-height: 1.2em; }
 .set-pips:empty { display: none; }
