@@ -710,7 +710,9 @@
       // 決勝: 獲得セット数を ★(獲得) ☆(未獲得) で出す
       const pips = col.querySelector('.set-pips');
       const nSets = st.settings.sets | 0;
-      pips.textContent = nSets > 0 ? '★'.repeat(Math.min(nSets, p.setsWon | 0)) + '☆'.repeat(Math.max(0, nSets - (p.setsWon | 0))) : '';
+      // 勝ち抜けた (このセットを獲得した) 時点で、☆ → ★ にする。セットを記録したあとは setsWon に入るので、二重には数えない
+      const won = Math.min(nSets, (p.setsWon | 0) + (p.status === 'win' ? 1 : 0));
+      pips.textContent = nSets > 0 ? '★'.repeat(won) + '☆'.repeat(nSets - won) : '';
       const penEl = col.querySelector('.penalty-display');
       penEl.classList.toggle('swedish', st.settings.rule === 'swedish10');
       penEl.classList.toggle('formula', st.settings.rule === 'nbyn');
