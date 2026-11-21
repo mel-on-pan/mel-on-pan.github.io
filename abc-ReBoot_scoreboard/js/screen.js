@@ -280,6 +280,21 @@
     const e = QB.escapeHTML;
     const logo = '<img class="scene-logo" src="reboot_logo_dark.png" alt="abc ReBoot">';
     if (sc.type === 'roulette') return rouletteHTML(st);
+    if (sc.type === 'champion') {
+      // 優勝者を称える画面: 大会ロゴ + 「優勝」 + 優勝者の大学・学年と名前。光の筋と金の細い枠で、大会の基調 (濃紺 + 空色) を保ったまま華やかにする
+      const d = sc.data || {};
+      const sparks = [[12, 22, 0], [86, 18, 1.3], [8, 64, 2.1], [92, 58, 0.7], [20, 86, 1.8], [78, 84, 2.6], [34, 12, 3.1], [66, 10, 0.4], [50, 93, 2.3], [4, 40, 1.1], [96, 36, 2.9], [28, 48, 3.5], [72, 46, 1.6]];
+      return (
+        '<div class="ch-rays"></div><div class="ch-frame"></div>' +
+        sparks.map((s) => '<i class="ch-spark" style="left:' + s[0] + '%;top:' + s[1] + '%;animation-delay:' + s[2] + 's"></i>').join('') +
+        '<img class="ch-logo" src="reboot_logo_dark.png" alt="abc ReBoot">' +
+        '<div class="ch-eyebrow">CHAMPION</div>' +
+        '<div class="ch-title">優勝</div>' +
+        '<div class="ch-rule"><b></b><i></i><b></b></div>' +
+        (d.org ? '<div class="ch-org">' + e(d.org) + '</div>' : '') +
+        '<div class="ch-name">' + e(d.name || '') + '</div>'
+      );
+    }
     if (sc.type === 'standby') {
       const n = (sc.data && sc.data.next) || {};
       const time = String(n.time || '').trim();
@@ -652,6 +667,18 @@
     el.className = 'scene scene-' + sc.type;
     el.innerHTML = sceneHTML(st);
     fitNames(el);
+    if (sc.type === 'champion') {
+      // 名前が長いときは、画面の幅に収まるまで小さくする
+      const nm = el.querySelector('.ch-name');
+      if (nm) {
+        const base = parseFloat(getComputedStyle(nm).fontSize);
+        let size = base;
+        while (nm.scrollWidth > nm.clientWidth + 1 && size > base * 0.4) {
+          size -= 1;
+          nm.style.fontSize = size + 'px';
+        }
+      }
+    }
     // スロットの演出中に作り直された場合も、続きから回す
     if (sc.type === 'roulette') {
       reelJustLanded = false;
