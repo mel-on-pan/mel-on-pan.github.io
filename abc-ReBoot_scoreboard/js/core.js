@@ -34,6 +34,13 @@
       n: 10, // NbyN の N (10by10 固定)
       winners: 0, // 勝ち抜け人数 (0 = 未設定)
       rest: 0, // 誤答後に休む問題数 (0 = なし)
+      // SF (Nine Hundred): ポイントは試合のあとで集計する。trPlus / trMinus = 正解・誤答のポイント、trWinners / trLosers = そのセットで勝ち抜け・失格にする人数
+      trPlus: 1,
+      trMinus: 1,
+      trWinners: 1,
+      trLosers: 2,
+      sets: 0, // 先取セット数 (決勝の 3セット先取。0 = セット制でない)。スコアボードに獲得セット数を出す
+      lastStanding: false, // 1人を残して全員が失格になったら、残った1人を勝ち抜けにする (決勝のセット)
       sound: true,
       viewerBaseUrl: '', // viewer.html を公開している URL (空なら自動判定)
     };
@@ -54,6 +61,11 @@
       status: 'active', // 'active' | 'win' | 'lose'
       rank: 0, // 勝ち抜け順
       manualWin: false, // 判定勝ち (運営が手動で勝ち抜けにした。得点での再判定で取り消さない)
+      manualLose: false, // 判定失格 (運営が手動で失格にした。得点での再判定で取り消さない)
+      setsWon: 0, // 獲得セット数 (決勝)
+      base: 0, // SF: このセットの開始時点のポイント (前のセットからの持ち越し)
+      setCorrect: 0, // SF: このセットの正解数 (試合のあとで入力する)
+      setWrong: 0, // SF: このセットの誤答数
       seed: Number.isInteger(seed) && seed > 0 ? seed : 0, // 運営が設定する順位 (0 = 未設定)
       restUntil: -1, // この問題番号まで休み
       restFrom: -1, // 休みが決まった (誤答した) 問題番号
@@ -63,7 +75,7 @@
   // ---------- タイマー (Number10 系ルール) ----------
 
   const TIMER_DEFAULT_SEC = 15 * 60;
-  const TIMER_RULES = ['nbyn', 'freeze10', 'updown10', 'swedish10'];
+  const TIMER_RULES = ['nbyn', 'freeze10', 'updown10', 'swedish10', 'timerace'];
 
   /** duration: 設定時間(秒) / remaining: 停止中の残り(ms) / endsAt: 動作中の終了時刻(ms) */
   function defaultTimer() {
@@ -104,6 +116,7 @@
       settings: defaultSettings(),
       players: players,
       qNo: 0, // 0 = 開始前
+      scoreHidden: false, // SF: 試合中はポイントを「？」と表示する (集計後に発表する)
       qBlank: false, // ルール変更・プレイヤー再設定の直後 (次に問題を動かすまで問題表示を空にする)
       qFloor: 0, // 観客ビューアの履歴はこの番号より後の問題だけ出す
       screenQr: { visible: false, url: '' },
@@ -136,7 +149,7 @@
 
   function score(st, p) {
     if (st.settings.rule === 'nbyn') return p.correct * Math.max(0, st.settings.n - p.wrong);
-    if (st.settings.rule === 'renda' || st.settings.rule === 'updown10') return p.points || 0;
+    if (st.settings.rule === 'renda' || st.settings.rule === 'updown10' || st.settings.rule === 'timerace') return p.points || 0;
     return p.correct;
   }
 
@@ -232,6 +245,17 @@
     return st.players.reduce((max, p) => Math.max(max, p.rank || 0), 0) + 1;
   }
 
+  /** 決勝のセット: 1人を残して全員が失格になったら、残った1人を勝ち抜けにする。勝ち抜けにしたら true */
+  function applyLastStanding(st) {
+    if (!st.settings.lastStanding || st.players.length < 2) return false;
+    if (st.players.some((p) => p.status === 'win')) return false;
+    const active = st.players.filter((p) => p.status === 'active');
+    if (active.length !== 1 || st.players.filter((p) => p.status === 'lose').length !== st.players.length - 1) return false;
+    active[0].status = 'win';
+    active[0].rank = nextRank(st);
+    return true;
+  }
+
   /** 得点変化後に勝ち抜け/失格を再判定する。状態が変わったら 'win' / 'lose' を返す。 */
   function evaluate(st, p) {
     const won = hasWon(st, p);
@@ -240,7 +264,7 @@
       p.status = 'active';
       p.rank = 0;
     }
-    if (p.status === 'lose' && !lost) p.status = 'active';
+    if (p.status === 'lose' && !lost && !p.manualLose) p.status = 'active';
     if (p.status === 'active') {
       if (won) {
         p.status = 'win';
@@ -289,6 +313,7 @@
     else if (s.rule === 'freeze10') label = 'Freeze10';
     else if (s.rule === 'updown10') label = '10Up-Down';
     else if (s.rule === 'swedish10') label = 'Swedish10';
+    else if (s.rule === 'timerace') label = 'Nine Hundred (正解+' + s.trPlus + ' / 誤答−' + s.trMinus + ')';
     else label = 'FREE';
     if (s.rest > 0) label += ' / 誤答' + s.rest + '回休み';
     return label;
@@ -415,6 +440,7 @@
     survivorsText,
     restLeft,
     evaluate,
+    applyLastStanding,
     nextRank,
     badge,
     ordinal,

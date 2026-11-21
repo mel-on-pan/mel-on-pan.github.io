@@ -19,7 +19,8 @@
       '<div class="status-badge"></div>' +
       '<div class="nameplate"><span class="name"></span><div class="fill"><span class="name"></span></div></div>' +
       '<div class="score-display"></div>' +
-      '<div class="penalty-display"></div>';
+      '<div class="penalty-display"></div>' +
+      '<div class="set-pips"></div>';
     col.addEventListener('animationend', (e) => {
       if (e.target === col && !e.pseudoElement) col.classList.remove('anim-correct', 'anim-wrong', 'anim-win', 'anim-lose');
     });
@@ -40,6 +41,7 @@
 
   function penaltyHTML(st, p) {
     const s = st.settings;
+    if (s.rule === 'timerace') return ''; // SF: 試合中は正解・誤答を出さない
     if (s.rule === 'swedish10') return swedishHTML(p);
     // 10by10: 得点の式 ○ × (10 − ×) を表示
     if (s.rule === 'nbyn') {
@@ -699,10 +701,16 @@
       col.querySelector('.nameplate').style.setProperty('--p', Math.round(QB.progress(st, p) * 100) + '%');
 
       const scoreEl = col.querySelector('.score-display');
-      const score = p.status === 'win' ? QB.ordinal(p.rank) : String(QB.score(st, p));
+      // SF: 試合中は、ポイントを「？」と表示する (集計後に、運営が発表する)
+      const hideScore = st.settings.rule === 'timerace' && st.scoreHidden;
+      const score = hideScore ? '？' : p.status === 'win' ? QB.ordinal(p.rank) : String(QB.score(st, p));
       scoreEl.textContent = score;
       scoreEl.style.setProperty('--digits', Math.max(2, score.length + (p.status === 'win' ? 1 : 0)));
 
+      // 決勝: 獲得セット数を ●(獲得) ○(未獲得) で出す
+      const pips = col.querySelector('.set-pips');
+      const nSets = st.settings.sets | 0;
+      pips.textContent = nSets > 0 ? '●'.repeat(Math.min(nSets, p.setsWon | 0)) + '○'.repeat(Math.max(0, nSets - (p.setsWon | 0))) : '';
       const penEl = col.querySelector('.penalty-display');
       penEl.classList.toggle('swedish', st.settings.rule === 'swedish10');
       penEl.classList.toggle('formula', st.settings.rule === 'nbyn');
