@@ -293,7 +293,8 @@
         )
         .join('');
       // まだ1問も映さない間 (step 0) は、見出しだけ。範囲・ページは、問題を映してから出す
-      if (!items.length) return '<div class="qf-head"><span class="qf-title">問題フォロー</span></div><div class="qf-list"></div>';
+      // (範囲・ページは見えない状態で置いておく: 見出しの高さ = 上の線の位置が、問題を映したときと変わらないように)
+      if (!items.length) return '<div class="qf-head"><span class="qf-title">問題フォロー</span><span class="qf-range" style="visibility:hidden">Q0 〜 Q0</span><span class="qf-page" style="visibility:hidden">0 / 0</span></div><div class="qf-list"></div>';
       return (
         '<div class="qf-head"><span class="qf-title">問題フォロー</span>' +
         '<span class="qf-range">Q' + e(d.from) + ' 〜 Q' + e(d.to) + '</span>' +
