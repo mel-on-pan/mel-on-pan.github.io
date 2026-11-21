@@ -78,8 +78,8 @@
     const st = curTimerState;
     const clock = document.getElementById('sceneClock'); // 大型タイマーの場面にだけある
     if (clock && st) applyTimer(clock, st.timer);
-    // スコアボードの小さなタイマーは、スコアボードを出しているときだけ
-    if (!st || !QB.hasTimer(st.settings.rule) || (st.scene && st.scene.type !== 'board')) {
+    // スコアボードの小さなタイマーは、スコアボードを出しているとき (SF入場の間も、下にスコアボードがある) だけ
+    if (!st || !QB.hasTimer(st.settings.rule) || (st.scene && st.scene.type !== 'board' && st.scene.type !== 'sfentry')) {
       el.textContent = '';
       return;
     }
@@ -639,24 +639,56 @@
   }
 
   // ---------- SF入場 ----------
-  // 真ん中から左右に1人ずつ入場する。1人ずつ、次の2段階で進む (運営パネルの▶):
-  //   2k+1: 並んでいるネームプレートの上に、横長のプレート (二つ名・名前) が、縦に開きながら覆いかぶさる
-  //   2k+2: 横長プレートが縦に閉じながら消え、ネームプレートが入場する人の分だけ間を空け、新しいネームプレートが縦に開きながら現れる
-  // scene.data = { players: [{ name, org, alias, seed }] (席順=左から), order: [入場する順の players の番号] }
+  // スコアボード (上部のルール名・タイマー・順位つきのネームプレート) の上に重ねる透明な場面。
+  // スコアボードの各列を、入場する前は隠し、入場するとその場所に現れる (全員が入場すれば、そのままスコアボードの状態)。
+  // 1人ずつ、次の2段階で進む (運営パネルの▶):
+  //   2k+1: 横長のプレート (二つ名・名前) が、縦に開きながら、スコアボードの上に覆いかぶさる
+  //   2k+2: 横長プレートが縦に閉じながら消え、その人のネームプレートが、自分の列で縦に開きながら現れる
+  // 開閉の途中も、プレートの上辺と下辺に空色の縁を付ける (clip-path で切ると縁も切れるので、縁は別の線で動かす)。
+  // scene.data = { players: [{ name, org, alias, seed }] (席順=左から=スコアボードの列の順), order: [入場する順の players の番号] }
 
   let seState = null; // { key, step }
   const SE_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
   const SE_CLOSED = 'inset(50% 0 50% 0)'; // 縦に閉じた (中央の線)
   const SE_OPEN = 'inset(0 0 0 0)';
-  const SE_WIDE_CLOSED = 'inset(50% -4vh 50% -4vh)'; // 横長プレートは、光る縁 (box-shadow) が切れないように少し広げる
-  const SE_WIDE_OPEN = 'inset(-4vh -4vh -4vh -4vh)';
+  // (横長プレートの光る縁は、切れないよう別の層 .se-wglow にして、開き終わる頃に浮かび上がらせる)
 
   function leaveSfEntry(el) {
     seState = null;
+    document.body.classList.remove('se-entry');
+    columns.forEach((col) => delete col.dataset.se);
     if (el.dataset.mode === 'sfentry') {
       el.dataset.mode = '';
       sceneKey = ''; // ほかの場面に戻ったときに作り直す
     }
+  }
+
+  /**
+   * 縦に開く / 閉じる動き。target の clip-path を動かし、上辺・下辺の空色の縁 (thick px) を、同じ動きで中央から離す / 中央へ寄せる。
+   * rect = 開いたときの target の位置。縁は clip されないよう、場面の直下に別の線として置く
+   */
+  function seSweep(target, rect, thick, closedClip, openClip, opening, delay, duration, easing, keepVisible) {
+    const stage = document.querySelector('.se-stage');
+    const frames = opening ? [{ clipPath: closedClip }, { clipPath: openClip }] : [{ clipPath: openClip }, { clipPath: closedClip }];
+    if (keepVisible) frames.forEach((f) => (f.opacity = 1));
+    target.animate(frames, { duration, delay, easing, fill: 'backwards' });
+    const cy = (rect.top + rect.bottom) / 2;
+    const make = (top, centerTop) => {
+      const edge = document.createElement('i');
+      edge.className = 'se-edge';
+      edge.style.cssText = 'left:' + rect.left + 'px;width:' + rect.width + 'px;height:' + thick + 'px;top:' + top + 'px';
+      stage.appendChild(edge);
+      const at = 'translateY(' + (centerTop - top) + 'px)';
+      const frames2 = opening ? [{ transform: at }, { transform: 'none' }] : [{ transform: 'none' }, { transform: at }];
+      const a = edge.animate(frames2, { duration, easing });
+      const done = () => edge.remove();
+      a.finished.then(done, done);
+    };
+    setTimeout(() => {
+      if (!stage.isConnected) return;
+      make(rect.top, cy); // 上辺: 中央に重なった位置から、上へ
+      make(rect.bottom - thick, cy - thick); // 下辺: 中央から、下へ
+    }, Math.max(0, delay));
   }
 
   function renderSfEntry(st, el) {
@@ -669,41 +701,34 @@
     if (el.dataset.mode !== 'sfentry' || !seState || seState.key !== key) {
       el.className = 'scene scene-sfentry';
       el.dataset.mode = 'sfentry';
-      el.innerHTML =
-        '<div class="se-stage">' +
-        players.map((p, i) => '<div class="se-plate" data-i="' + i + '"><div class="se-face"><span class="se-name"></span><span class="se-org"></span></div></div>').join('') +
-        '<div class="se-wide"><div class="se-alias"></div><div class="se-wname"></div></div>' +
-        '</div>';
+      el.innerHTML = '<div class="se-stage"><div class="se-wide"><div class="se-wglow"></div><div class="se-wbox"><div class="se-alias"></div><div class="se-wname"></div></div></div></div>';
       seState = { key, step: null };
     }
+    document.body.classList.add('se-entry'); // ポイント欄 (SF の「？」) は、入場の間は出さない
     const stage = el.querySelector('.se-stage');
-    const plates = [...stage.querySelectorAll('.se-plate')];
     const wide = stage.querySelector('.se-wide');
-
-    // ネームプレートの文字: 名前と大学・学年 (観客用では、入場する段階で届く)
-    plates.forEach((pl, i) => {
-      const p = players[i] || {};
-      const nm = pl.querySelector('.se-name');
-      const og = pl.querySelector('.se-org');
-      if (nm.textContent !== (p.name || '')) nm.textContent = p.name || '';
-      if (og.textContent !== (p.org || '')) og.textContent = p.org || '';
-      pl.style.setProperty('--len', Math.max(3, [...(p.name || '')].length));
-      pl.style.setProperty('--olen', Math.max(3, [...(p.org || '')].length));
-    });
+    const wbox = stage.querySelector('.se-wbox');
+    const glow = stage.querySelector('.se-wglow');
 
     const step = Math.min(n * 2, Math.max(0, sc.step | 0));
     const e = step > 0 ? Math.floor((step - 1) / 2) : -1; // 今入場している (入場した) 人の、入場順
     const isWide = step > 0 && step % 2 === 1;
     const entryOf = (i) => order.indexOf(i);
-    const entered = plates.map((_, i) => i).filter((i) => entryOf(i) >= 0 && (entryOf(i) < e || (entryOf(i) === e && !isWide)));
+    const entered = new Set(players.map((_, i) => i).filter((i) => entryOf(i) >= 0 && (entryOf(i) < e || (entryOf(i) === e && !isWide))));
     const prev = seState.step;
     const animate = prev !== null && step === prev + 1;
-    const newcomer = animate && !isWide ? order[e] : -1; // 今回新しく現れるネームプレート
-    const hadPlates = entered.some((i) => i !== newcomer);
-
-    // 同じ段階の状態がもう一度届いたとき (画面間の通信は2経路で届く) は、動いている最中の動きを止めないよう、文字の更新だけにする
     const same = prev === step;
+    const newcomer = animate && !isWide ? order[e] : -1; // 今回新しく現れるネームプレート
+
+    // スコアボードの列: 入場していない人の列は隠す (列は、スコアボードの選手の並び = 席順)
+    const colOf = (i) => (st.players[i] ? columns.get(st.players[i].id) : null);
+    st.players.forEach((p, i) => {
+      const col = columns.get(p.id);
+      if (col) col.dataset.se = entered.has(i) ? '' : 'hide';
+    });
+
     if (!animate && !same) stage.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+    if (!animate && !same) stage.querySelectorAll('.se-edge').forEach((x) => x.remove());
 
     // 横長プレートの文字: 二つ名 (上) と名前
     if (isWide) {
@@ -719,31 +744,25 @@
         nm.style.fontSize = size + 'px';
       }
     }
-
-    if (same) return;
-
-    // 並び (入場した人だけ、真ん中に寄せて並べる)。動かないときは、トランジションを使わずに一度に置く
-    const m = entered.length;
-    stage.style.setProperty('--shift-delay', animate && !isWide ? '0.5s' : '0s');
-    plates.forEach((pl, i) => {
-      const rank = entered.indexOf(i);
-      if (!animate || i === newcomer) pl.style.transition = 'none';
-      pl.classList.toggle('on', rank >= 0);
-      if (rank >= 0) pl.style.setProperty('--dx', String(rank - (m - 1) / 2));
-    });
-    void stage.offsetWidth; // 一度に置いた分のトランジションを無効にしてから、戻す
-    plates.forEach((pl) => (pl.style.transition = ''));
     stage.classList.toggle('split', isWide); // 横長プレートを出している間
+    if (same) return; // 同じ段階の状態がもう一度届いたとき (画面間の通信は2経路で届く) は、動いている最中の動きを止めない
 
     if (animate) {
+      const vh = window.innerHeight / 100;
       if (isWide) {
-        // 横長プレートが、縦に開きながら、ネームプレートの上に覆いかぶさる
-        wide.animate([{ clipPath: SE_WIDE_CLOSED }, { clipPath: SE_WIDE_OPEN }], { duration: 800, easing: SE_EASE, fill: 'backwards' });
+        // 横長プレートが、縦に開きながら、スコアボードの上に覆いかぶさる
+        seSweep(wbox, wide.getBoundingClientRect(), 0.8 * vh, SE_CLOSED, SE_OPEN, true, 0, 800, SE_EASE, false);
+        glow.animate([{ opacity: 0 }, { opacity: 0, offset: 0.6 }, { opacity: 1 }], { duration: 800, fill: 'backwards' });
       } else {
-        // 横長プレートが縦に閉じながら消える → ネームプレートが間を空ける → 新しいネームプレートが縦に開きながら現れる
-        wide.animate([{ clipPath: SE_WIDE_OPEN, opacity: 1 }, { clipPath: SE_WIDE_CLOSED, opacity: 1 }], { duration: 650, easing: 'cubic-bezier(0.6, 0, 0.3, 1)' });
-        if (newcomer >= 0) {
-          plates[newcomer].animate([{ clipPath: SE_CLOSED }, { clipPath: SE_OPEN }], { duration: 900, delay: hadPlates ? 1150 : 500, easing: SE_EASE, fill: 'backwards' });
+        // 横長プレートが縦に閉じながら消える → その人のネームプレートが、自分の列で縦に開きながら現れる
+        seSweep(wbox, wide.getBoundingClientRect(), 0.8 * vh, SE_CLOSED, SE_OPEN, false, 0, 650, 'cubic-bezier(0.6, 0, 0.3, 1)', false);
+        glow.animate([{ opacity: 1 }, { opacity: 0, offset: 0.4 }, { opacity: 0 }], { duration: 650 });
+        wide.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 650 }); // 閉じている間は見えたままにする
+        const col = colOf(newcomer);
+        if (col) {
+          const plate = col.querySelector('.nameplate');
+          seSweep(plate, plate.getBoundingClientRect(), 0.5 * vh, SE_CLOSED, SE_OPEN, true, 450, 900, SE_EASE, false);
+          col.querySelectorAll('.status-badge').forEach((b) => b.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 450, fill: 'backwards' }));
         }
       }
     }
