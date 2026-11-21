@@ -295,13 +295,13 @@
     return '';
   }
 
-  /** プレートの名前が枠に収まらないときは、文字サイズを少しずつ小さくして収める (下限は元の55%) */
+  /** プレートの名前が枠に収まらないときは、文字サイズを少しずつ小さくして収める (下限は元の40%) */
   function fitNames(root) {
     root.querySelectorAll('.to-name').forEach((el) => {
       el.style.fontSize = '';
       const base = parseFloat(getComputedStyle(el).fontSize);
       let size = base;
-      while (el.scrollWidth > el.clientWidth + 1 && size > base * 0.55) {
+      while (el.scrollWidth > el.clientWidth + 1 && size > base * 0.4) {
         size -= 1;
         el.style.fontSize = size + 'px';
       }
