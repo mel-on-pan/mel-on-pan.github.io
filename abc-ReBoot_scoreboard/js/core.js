@@ -47,11 +47,12 @@
   }
 
   let idCounter = 0;
-  function createPlayer(index, name, color, seed, advantage) {
+  function createPlayer(index, name, color, seed, advantage, org) {
     idCounter += 1;
     return {
       id: 'p' + Date.now().toString(36) + idCounter,
       name: name,
+      org: typeof org === 'string' ? org : '', // 大学・学年 (大会モードの参加者。スクリーンでは名前に添えて表示する)
       color: COLORS[color] ? color : COLOR_ORDER[index % COLOR_ORDER.length],
       advantage: Number.isInteger(advantage) && advantage > 0 ? advantage : 0, // アド: セット開始時点で持つマル数
       correct: Number.isInteger(advantage) && advantage > 0 ? advantage : 0,

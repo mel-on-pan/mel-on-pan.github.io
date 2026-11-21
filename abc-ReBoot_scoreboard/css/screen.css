@@ -317,6 +317,7 @@ body.show-q .penalty-display { height: 6.4vh; }
   background: transparent;
   container-type: size;
   transition: filter 0.4s;
+  gap: 1.4cqw;
 }
 .nameplate .name {
   writing-mode: vertical-rl;
@@ -345,11 +346,27 @@ body.show-q .penalty-display { height: 6.4vh; }
   align-items: center;
   justify-content: center;
   padding: 1.5vh 0;
+  gap: 1.4cqw;
   background: var(--sky);
   clip-path: inset(calc(100% - var(--p, 0%)) 0 0 0);
   transition: clip-path 0.8s var(--ease);
 }
 .nameplate .fill .name { color: var(--ink); }
+/* 大学・学年 (大会モード): 名前の右側に、小さい縦書きで添える。ある人は、名前を少し細くして並べる */
+.nameplate .org {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: min(25cqw, calc(88cqh / var(--olen, 4)), 4.4vh);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--text);
+  opacity: 0.85;
+}
+.nameplate .org:empty { display: none; }
+.nameplate.has-org .name { font-size: min(35cqw, calc(88cqh / var(--len, 4)), 9vh); }
+.nameplate .fill .org { color: var(--ink); opacity: 1; }
 
 /* スコア数表示 */
 .score-display {
@@ -490,6 +507,7 @@ body.staging.head-in .board-question { animation: fade-up 0.8s var(--ease) forwa
 
 .player-column.shown { animation: col-in 0.8s var(--ease) both; }
 .player-column.shown .nameplate { animation: plate-wipe 0.9s cubic-bezier(0.7, 0, 0.2, 1) both; }
+.player-column.shown .org,
 .player-column.shown .name { animation: fade-up 0.7s var(--ease) 0.45s both; }
 .player-column.shown .status-badge,
 .player-column.shown .score-display,
@@ -636,9 +654,15 @@ html.embed .hint { display: none; }
 .tc-rank small { font-size: 0.42em; font-weight: 500; margin-left: 0.06em; }
 /* 名前面: 横長 (裏側なので、あらかじめ180度回しておく) */
 .to-back { width: calc(92vh * var(--k)); height: calc(38vh * var(--k)); left: calc(-46vh * var(--k)); top: calc(-19vh * var(--k)); transform: rotateY(180deg); padding: 0 calc(4vh * var(--k)); }
+.to-back { flex-direction: column; }
+.tc-org { max-width: 100%; margin-bottom: calc(1.2vh * var(--k)); font-size: calc(5.6vh * var(--k)); font-weight: 700; line-height: 1.1; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--sky); }
+.tc-org:empty { display: none; }
 .tc-name { max-width: 100%; font-size: calc(13vh * var(--k)); font-weight: 800; line-height: 1.1; letter-spacing: 0.08em; white-space: nowrap; }
 .to-rank { font-family: var(--num); font-size: 5vh; font-weight: 600; min-width: 3.1ch; white-space: nowrap; }
 .to-rank small { font-size: 0.55em; font-weight: 500; margin-left: 0.05em; }
+.to-who { align-self: center; flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0 0.7vw; }
+.to-org { font-size: 1.5vh; line-height: 1.15; font-weight: 700; color: var(--sky); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.to-org:empty { display: none; }
 .to-name { font-size: 4.2vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tier-red { --tier: #CC0000; }
 .tier-blue { --tier: #0044CC; }
@@ -711,7 +735,7 @@ html.embed .hint { display: none; }
   color: #fff;
 }
 .rl-plate .to-rank { font-size: 2.9vh; }
-.rl-plate .to-name { align-self: center; flex: 1; min-width: 0; padding: 0 0.7vw; font-size: 2.6vh; font-weight: 800; }
+.rl-plate .to-name { font-size: 2.6vh; font-weight: 800; }
 .rl-tag { position: absolute; right: 0.5vw; bottom: 0.2vh; font-size: 1.7vh; font-family: var(--num); background: rgba(0, 0, 0, 0.55); padding: 0 0.5vw; border-radius: 0.5vh; }
 .rl-plate.assigned { opacity: 0.38; filter: saturate(0.6); }
 .rl-plate.just { animation: rl-just 1.2s var(--ease); }
@@ -725,7 +749,8 @@ html.embed .hint { display: none; }
 .rl-slot { flex: 1; min-height: 0; display: flex; align-items: stretch; overflow: hidden; border: 0.3vh dashed rgba(143, 211, 255, 0.25); }
 .rl-slot.filled { border: 0.3vh solid var(--sky); color: var(--text); animation: to-in 0.5s var(--ease) both; }
 .rl-slot .to-rank { font-size: 2.3vh; }
-.rl-slot .to-name { align-self: center; flex: 1; min-width: 0; padding: 0 0.6vw; font-size: 2.3vh; font-weight: 800; }
+.rl-slot .to-name { font-size: 2.3vh; font-weight: 800; }
+.rl-slot .to-org { font-size: 1.3vh; }
 
 /* ---------- Extra Round 1st step (問題と解答) ---------- */
 .scene-revival { padding: 0; }

@@ -17,7 +17,7 @@
     col.dataset.id = id;
     col.innerHTML =
       '<div class="status-badge"></div>' +
-      '<div class="nameplate"><span class="name"></span><div class="fill"><span class="name"></span></div></div>' +
+      '<div class="nameplate"><span class="name"></span><span class="org"></span><div class="fill"><span class="name"></span><span class="org"></span></div></div>' +
       '<div class="score-display"></div>' +
       '<div class="penalty-display"></div>' +
       '<div class="set-pips"></div>';
@@ -203,6 +203,12 @@
     reelDoneTimer = setTimeout(() => reelAnimating !== null && finishReel(), REEL_MS - elapsed + 80);
   }
 
+  /** 横書きの表示 (ルーレット): 名前の上側に「大学・学年」を小さく添える */
+  function whoHTML(p) {
+    const e = QB.escapeHTML;
+    return '<span class="to-who"><span class="to-org">' + e(p.org || '') + '</span><span class="to-name">' + e(p.name) + '</span></span>';
+  }
+
   function rouletteHTML(st) {
     const d = st.scene.data || {};
     const e = QB.escapeHTML;
@@ -234,7 +240,7 @@
         const tier = QB.seedTier(p.seed);
         return (
           '<div class="rl-plate tier-' + tier + (si >= 0 ? ' assigned' : '') + (just ? ' just' : '') + '">' +
-          '<span class="to-rank">' + ordHTML(p.seed) + '</span><span class="to-name">' + e(p.name) + '</span>' +
+          '<span class="to-rank">' + ordHTML(p.seed) + '</span>' + whoHTML(p) +
           (si >= 0 ? '<span class="rl-tag">' + e(sets[si].title) + '</span>' : '') +
           '</div>'
         );
@@ -248,7 +254,7 @@
         const rows = [];
         for (let i = 0; i < Math.max(5, members.length); i++) {
           const p = members[i];
-          rows.push(p ? '<div class="rl-slot tier-' + QB.seedTier(p.seed) + ' filled"><span class="to-rank">' + ordHTML(p.seed) + '</span><span class="to-name">' + e(p.name) + '</span></div>' : '<div class="rl-slot"></div>');
+          rows.push(p ? '<div class="rl-slot tier-' + QB.seedTier(p.seed) + ' filled"><span class="to-rank">' + ordHTML(p.seed) + '</span>' + whoHTML(p) + '</div>' : '<div class="rl-slot"></div>');
         }
         return (
           '<div class="rl-card' + (s.status === 'done' ? ' done' : '') + '">' +
@@ -381,11 +387,11 @@
    */
   function makeSpinner(slot, kind) {
     const rank = slot.querySelector('.tc-rank');
-    const name = slot.querySelector('.tc-name');
+    const back = slot.querySelector('.to-back');
     const faces =
       kind === 'rank'
         ? '<div class="to-face to-front">' + rank.outerHTML + '</div><div class="to-face to-front" style="transform:rotateY(180deg)">' + rank.outerHTML + '</div>'
-        : '<div class="to-face to-back" style="transform:none">' + name.outerHTML + '</div><div class="to-face to-back">' + name.outerHTML + '</div>';
+        : '<div class="to-face to-back" style="transform:none">' + back.innerHTML + '</div><div class="to-face to-back">' + back.innerHTML + '</div>'; // 大学・学年 + 名前
     const wrap = document.createElement('div');
     wrap.className = 'to-spinwrap';
     wrap.innerHTML = '<div class="to-spin">' + faces + '</div>';
@@ -493,7 +499,7 @@
             (p) =>
               '<div class="to-slot tier-' + QB.seedTier(p.seed) + '"><div class="to-fade"><div class="to-card">' +
               '<div class="to-face to-front"><span class="tc-rank">' + ordHTML(p.seed) + '</span></div>' +
-              '<div class="to-face to-back"><span class="tc-name">' + e(p.name) + '</span></div>' +
+              '<div class="to-face to-back"><span class="tc-org">' + e(p.org || '') + '</span><span class="tc-name">' + e(p.name) + '</span></div>' +
               '</div></div></div>'
           )
           .join('') +
@@ -504,6 +510,9 @@
     // 名前が変わったら (観客用は、裏返す段階で届く) 名前だけ入れ替える。動きの前に済ませる
     toSlots(el).forEach((slot, i) => {
       const nm = slot.querySelector('.tc-name');
+      const org = slot.querySelector('.tc-org');
+      const wantOrg = g.players[i] ? g.players[i].org || '' : '';
+      if (org && org.textContent !== wantOrg) org.textContent = wantOrg;
       const want = g.players[i] ? g.players[i].name : '';
       if (nm && nm.textContent !== want) {
         nm.textContent = want;
@@ -698,6 +707,13 @@
         el.textContent = p.name;
         el.style.setProperty('--len', Math.max(3, [...p.name].length));
       });
+      // 大学・学年 (大会モード): 縦書きの名前の右側に、小さく縦書きで添える
+      const org = typeof p.org === 'string' ? p.org : '';
+      col.querySelectorAll('.org').forEach((el) => {
+        el.textContent = org;
+        el.style.setProperty('--olen', Math.max(3, [...org].length));
+      });
+      col.querySelector('.nameplate').classList.toggle('has-org', !!org);
       col.querySelector('.nameplate').style.setProperty('--p', Math.round(QB.progress(st, p) * 100) + '%');
 
       const scoreEl = col.querySelector('.score-display');
