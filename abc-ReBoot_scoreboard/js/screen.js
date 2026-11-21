@@ -280,6 +280,25 @@
     const e = QB.escapeHTML;
     const logo = '<img class="scene-logo" src="reboot_logo_dark.png" alt="abc ReBoot">';
     if (sc.type === 'roulette') return rouletteHTML(st);
+    if (sc.type === 'qfollow') {
+      // 問題フォロー: 指定した範囲の問題文と解答を、3問ずつ映す (1ページ = 3問。ページは運営パネルの▶で進む)
+      const d = sc.data || {};
+      const items = d.items || [];
+      const cards = items
+        .map(
+          (it) =>
+            '<div class="qf-card"><div class="qf-no"><small>Q</small>' + e(it.n) + '</div>' +
+            '<div class="qf-body"><div class="qf-q"><p>' + e(it.q) + '</p></div>' +
+            '<div class="qf-a"><span class="qf-tag">A</span><p>' + e(it.a) + '</p></div></div></div>'
+        )
+        .join('');
+      return (
+        '<div class="qf-head"><span class="qf-title">問題フォロー</span>' +
+        '<span class="qf-range">Q' + e(d.from) + ' 〜 Q' + e(d.to) + '</span>' +
+        '<span class="qf-page">' + e((sc.step | 0) + 1) + ' / ' + e(d.pages || 1) + '</span></div>' +
+        '<div class="qf-list">' + cards + '</div>'
+      );
+    }
     if (sc.type === 'champion') {
       // 優勝者を称える画面: 大会ロゴ + 「優勝」 + 優勝者の大学・学年と名前。光の筋と金の細い枠で、大会の基調 (濃紺 + 空色) を保ったまま華やかにする
       const d = sc.data || {};
@@ -312,6 +331,11 @@
 
   /** プレートの名前が枠に収まらないときは、文字サイズを少しずつ小さくして収める (下限は元の40%) */
   function fitNames(root) {
+    // 問題フォロー: 問題文・解答が、カードの枠に収まる最大の大きさにする
+    root.querySelectorAll('.qf-card').forEach((card) => {
+      fitTextInBox(card.querySelector('.qf-q p'), card.querySelector('.qf-q'), 4.4, 2);
+      fitTextInBox(card.querySelector('.qf-a p'), card.querySelector('.qf-a'), 5.2, 2.4);
+    });
     // 優勝の場面: 名前が長いときは、画面の幅に収まるまで小さくする (ウィンドウの大きさが変わったときも、ここで直す)
     root.querySelectorAll('.ch-name').forEach((el) => {
       el.style.fontSize = '';
