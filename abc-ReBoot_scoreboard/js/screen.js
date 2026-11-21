@@ -702,7 +702,7 @@
 
       const scoreEl = col.querySelector('.score-display');
       // SF: 試合中は、ポイントを「？」と表示する (集計後に、運営が発表する)
-      const hideScore = st.settings.rule === 'timerace' && st.scoreHidden;
+      const hideScore = st.settings.rule === 'timerace' && st.scoreHidden && p.status === 'active'; // 前のセットで決まった人 (n番目 / 失格) の表示は、そのまま出す
       const score = hideScore ? '？' : p.status === 'win' ? QB.ordinal(p.rank) : String(QB.score(st, p));
       scoreEl.textContent = score;
       scoreEl.style.setProperty('--digits', Math.max(2, score.length + (p.status === 'win' ? 1 : 0)));
