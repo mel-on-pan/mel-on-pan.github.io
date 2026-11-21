@@ -638,6 +638,142 @@
     rvAnswerKey = null;
   }
 
+  // ---------- SF入場 ----------
+  // 真ん中から左右に1人ずつ入場する。1人ずつ、次の2段階で進む (運営パネルの▶):
+  //   2k+1: 並んでいるネームプレートが上下に割れて、その間に横長のプレート (二つ名・名前) が開く
+  //   2k+2: 横長プレートが細い線になって消え、ネームプレートが元に戻りながら、入場する人の分だけ間が空いて、新しいネームプレートが現れる
+  // scene.data = { players: [{ name, org, alias, seed }] (席順=左から), order: [入場する順の players の番号] }
+
+  let seState = null; // { key, step }
+  const SE_SPLIT = '20vh'; // 割れたネームプレートが上下に離れる距離
+  const SE_EASE = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
+
+  function leaveSfEntry(el) {
+    seState = null;
+    if (el.dataset.mode === 'sfentry') {
+      el.dataset.mode = '';
+      sceneKey = ''; // ほかの場面に戻ったときに作り直す
+    }
+  }
+
+  function seHalf(cls) {
+    return '<div class="se-half ' + cls + '"><div class="se-face"><span class="se-name"></span><span class="se-org"></span></div></div>';
+  }
+
+  function renderSfEntry(st, el) {
+    const sc = st.scene;
+    const d = sc.data || {};
+    const players = d.players || [];
+    const order = d.order || [];
+    const n = players.length;
+    const key = n + '|' + order.join(',');
+    if (el.dataset.mode !== 'sfentry' || !seState || seState.key !== key) {
+      el.className = 'scene scene-sfentry';
+      el.dataset.mode = 'sfentry';
+      el.innerHTML =
+        '<div class="se-stage">' +
+        players.map((p, i) => '<div class="se-plate" data-i="' + i + '">' + seHalf('top') + seHalf('bot') + '</div>').join('') +
+        '<div class="se-wide"><div class="se-alias"></div><div class="se-worg"></div><div class="se-wname"></div></div>' +
+        '</div>';
+      seState = { key, step: null };
+    }
+    const stage = el.querySelector('.se-stage');
+    const plates = [...stage.querySelectorAll('.se-plate')];
+    const wide = stage.querySelector('.se-wide');
+
+    // ネームプレートの文字 (観客用では、入場する段階で名前が届く)
+    plates.forEach((pl, i) => {
+      const p = players[i] || {};
+      pl.querySelectorAll('.se-name').forEach((x) => {
+        if (x.textContent !== (p.name || '')) x.textContent = p.name || '';
+      });
+      pl.querySelectorAll('.se-org').forEach((x) => {
+        if (x.textContent !== (p.org || '')) x.textContent = p.org || '';
+      });
+      pl.style.setProperty('--len', Math.max(3, [...(p.name || '')].length));
+      pl.style.setProperty('--olen', Math.max(3, [...(p.org || '')].length));
+    });
+
+    const step = Math.min(n * 2, Math.max(0, sc.step | 0));
+    const e = step > 0 ? Math.floor((step - 1) / 2) : -1; // 今入場している (入場した) 人の、入場順
+    const isWide = step > 0 && step % 2 === 1;
+    const entryOf = (i) => order.indexOf(i);
+    const entered = plates.map((_, i) => i).filter((i) => entryOf(i) >= 0 && (entryOf(i) < e || (entryOf(i) === e && !isWide)));
+    const prev = seState.step;
+    const animate = prev !== null && step === prev + 1;
+    const newcomer = animate && !isWide ? order[e] : -1; // 今回新しく出るネームプレート
+    const old = entered.filter((i) => i !== newcomer); // 前から並んでいるネームプレート
+
+    if (!animate) stage.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+
+    // 横長プレートの文字
+    if (isWide) {
+      const p = players[order[e]] || {};
+      const set = (sel, text) => {
+        const x = wide.querySelector(sel);
+        x.textContent = text || '';
+        x.style.fontSize = '';
+      };
+      set('.se-alias', p.alias);
+      set('.se-worg', p.org);
+      set('.se-wname', p.name);
+      const nm = wide.querySelector('.se-wname');
+      const base = parseFloat(getComputedStyle(nm).fontSize);
+      let size = base;
+      while (nm.scrollWidth > nm.clientWidth + 1 && size > base * 0.4) {
+        size -= 1;
+        nm.style.fontSize = size + 'px';
+      }
+    }
+
+    // 並び (入場した人だけ、真ん中に寄せて並べる)。動かないときは、トランジションを使わずに一度に置く
+    const m = entered.length;
+    stage.style.setProperty('--shift-delay', animate && !isWide ? '0.35s' : '0s');
+    plates.forEach((pl, i) => {
+      const rank = entered.indexOf(i);
+      const instant = !animate || i === newcomer;
+      if (instant) pl.style.transition = 'none';
+      pl.classList.toggle('on', rank >= 0);
+      if (rank >= 0) pl.style.setProperty('--dx', String(rank - (m - 1) / 2));
+    });
+    void stage.offsetWidth; // 一度に置いた分のトランジションを無効にしてから、戻す
+    plates.forEach((pl) => (pl.style.transition = ''));
+    stage.classList.toggle('split', isWide);
+
+    if (animate) {
+      const halves = (i, side) => plates[i].querySelector('.se-half.' + side);
+      if (isWide) {
+        // 並んでいるネームプレートが上下に割れて、その間に横長プレートが開く
+        old.forEach((i) => {
+          halves(i, 'top').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-' + SE_SPLIT + ')' }], { duration: 700, easing: SE_EASE, fill: 'backwards' });
+          halves(i, 'bot').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(' + SE_SPLIT + ')' }], { duration: 700, easing: SE_EASE, fill: 'backwards' });
+        });
+        wide.animate([{ transform: 'scaleY(0)', opacity: 0 }, { transform: 'scaleY(1)', opacity: 1 }], { duration: 700, delay: old.length ? 250 : 0, easing: SE_EASE, fill: 'backwards' });
+      } else {
+        // 横長プレートが細い線になって消える → ネームプレートが元に戻りつつ間が空く → 新しいネームプレートが現れる
+        wide.animate(
+          [
+            { transform: 'scaleY(1)', opacity: 1 },
+            { transform: 'scaleY(0.04)', opacity: 1, offset: 0.7 },
+            { transform: 'scaleY(0.04)', opacity: 0 },
+          ],
+          { duration: 600, easing: 'ease-in' }
+        );
+        old.forEach((i) => {
+          halves(i, 'top').animate([{ transform: 'translateY(-' + SE_SPLIT + ')' }, { transform: 'translateY(0)' }], { duration: 700, delay: 350, easing: SE_EASE, fill: 'backwards' });
+          halves(i, 'bot').animate([{ transform: 'translateY(' + SE_SPLIT + ')' }, { transform: 'translateY(0)' }], { duration: 700, delay: 350, easing: SE_EASE, fill: 'backwards' });
+        });
+        if (newcomer >= 0) {
+          plates[newcomer].animate(
+            [{ transform: 'translateX(-50%) scaleY(0)', opacity: 0 }, { transform: 'translateX(-50%) scaleY(1)', opacity: 1 }],
+            { duration: 600, delay: old.length ? 900 : 450, easing: SE_EASE, fill: 'backwards' }
+          );
+        }
+      }
+    }
+    seState.step = step;
+  }
+
   function renderScene(st) {
     const sc = st.scene || { type: 'board' };
     const el = $('scene');
@@ -647,6 +783,7 @@
     const isTurnover = sc.type === 'turnover' || sc.type === 'turnover49'; // 49位のターンオーバーも、同じカードの描画を使う
     if (!on || !isTurnover) leaveTurnover(el);
     if (!on || sc.type !== 'revival1') leaveRevival(el);
+    if (!on || sc.type !== 'sfentry') leaveSfEntry(el);
     if (!on) {
       sceneKey = '';
       return;
@@ -657,6 +794,10 @@
     }
     if (sc.type === 'revival1') {
       renderRevival(st, el);
+      return;
+    }
+    if (sc.type === 'sfentry') {
+      renderSfEntry(st, el);
       return;
     }
     if (sc.type === 'roulette') updateReelState(sc.data);
