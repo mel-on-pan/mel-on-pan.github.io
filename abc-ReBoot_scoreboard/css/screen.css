@@ -825,7 +825,7 @@ html.embed .hint { display: none; }
   opacity: 0;
   animation: ch-twinkle 4.2s ease-in-out infinite;
 }
-.scene-champion .ch-logo { height: 15vh; margin-bottom: 1.6vh; animation: ch-rise 1.1s var(--ease) 0.2s both; }
+.scene-champion .ch-logo { height: 13vh; margin-bottom: 1.6vh; animation: ch-rise 1.1s var(--ease) 0.2s both; }
 .scene-champion .ch-eyebrow {
   font-family: var(--num);
   font-size: 3vh;
@@ -836,9 +836,9 @@ html.embed .hint { display: none; }
   animation: ch-rise 1s var(--ease) 0.7s both;
 }
 .scene-champion .ch-title {
-  margin: 0.6vh 0 1vh;
+  margin: 0.4vh 0 0.6vh;
   padding-left: 0.14em;
-  font-size: 30vh;
+  font-size: 15vh;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: 0.14em;
@@ -851,15 +851,15 @@ html.embed .hint { display: none; }
   filter: drop-shadow(0 0 2.4vh rgba(255, 212, 0, 0.45));
   animation: ch-title-in 1.6s var(--ease) 1.1s both, ch-glint 7s ease-in-out 3.2s infinite;
 }
-.scene-champion .ch-rule { display: flex; align-items: center; gap: 1.6vw; margin-bottom: 2.6vh; animation: ch-fade 1.2s ease-out 2s both; }
+.scene-champion .ch-rule { display: flex; align-items: center; gap: 1.6vw; margin-bottom: 3vh; animation: ch-fade 1.2s ease-out 2s both; }
 .scene-champion .ch-rule b { display: block; width: 20vw; height: 0.25vh; background: linear-gradient(90deg, transparent, #ffd400); }
 .scene-champion .ch-rule b:last-child { background: linear-gradient(90deg, #ffd400, transparent); }
 .scene-champion .ch-rule i { display: block; width: 1.4vh; height: 1.4vh; background: #ffd400; transform: rotate(45deg); box-shadow: 0 0 1.6vh rgba(255, 212, 0, 0.7); }
-.scene-champion .ch-org { font-size: 4.4vh; font-weight: 600; letter-spacing: 0.16em; color: var(--sky); animation: ch-rise 1s var(--ease) 2.3s both; }
+.scene-champion .ch-org { font-size: 7vh; font-weight: 700; letter-spacing: 0.16em; color: var(--sky); animation: ch-rise 1s var(--ease) 2.3s both; }
 .scene-champion .ch-name {
-  max-width: 88vw;
+  max-width: 92vw;
   margin-top: 1vh;
-  font-size: 12vh;
+  font-size: 18vh;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.12em;
