@@ -313,7 +313,7 @@
     else if (s.rule === 'freeze10') label = 'Freeze10';
     else if (s.rule === 'updown10') label = '10Up-Down';
     else if (s.rule === 'swedish10') label = 'Swedish10';
-    else if (s.rule === 'timerace') label = 'Nine Hundred (正解+' + s.trPlus + ' / 誤答−' + s.trMinus + ')';
+    else if (s.rule === 'timerace') label = 'Nine Hundred'; // 加点・減点は、運営パネルの「SF 集計」に出す
     else label = 'FREE';
     if (s.rest > 0) label += ' / 誤答' + s.rest + '回休み';
     return label;
