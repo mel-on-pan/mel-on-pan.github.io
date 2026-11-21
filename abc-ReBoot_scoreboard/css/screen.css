@@ -911,7 +911,13 @@ body.se-entry .score-display { visibility: hidden; } /* 入場の間は、ポイ
 
 /* ---------- スコアボードの奥行き ----------
    優勝画面など、ほかの場面の質感と揃えるため、背景・プレート・バッジ・得点欄にごく控えめな陰影を付ける。動きや発光は足さない */
-:root { --bg-grad: radial-gradient(ellipse 85% 70% at 50% 38%, #0f2237 0%, #0a1523 48%, var(--bg) 100%); }
+:root {
+  /* 優勝画面と同じ、足元からの間接照明: 下端がいちばん明るく、上へ向かってなだらかに暗くなる */
+  --bg-grad:
+    radial-gradient(ellipse 70% 34% at 50% 100%, rgba(190, 228, 255, 0.32) 0%, rgba(143, 211, 255, 0.13) 45%, rgba(143, 211, 255, 0) 100%),
+    radial-gradient(ellipse 135% 105% at 50% 110%, rgba(80, 160, 225, 0.72) 0%, rgba(50, 110, 180, 0.46) 42%, rgba(25, 70, 125, 0.18) 74%, rgba(20, 60, 110, 0) 100%),
+    linear-gradient(180deg, #08101c 0%, #0c1c31 42%, #112a47 100%);
+}
 html { background: var(--bg); }
 body { background: var(--bg-grad) fixed; }
 .scene:not(.scene-champion):not(.scene-sfentry) { background: var(--bg-grad) fixed; } /* 優勝は専用の背景、SF入場は下のスコアボードを見せる透明 */
@@ -922,7 +928,7 @@ body { background: var(--bg-grad) fixed; }
 
 /* プレイヤー列: 手前に浮いた板。上辺は明るく、下辺は暗く、下に影を落とす */
 .player-column {
-  background: linear-gradient(180deg, #151e2b 0%, #0d131c 55%, #0a0f16 100%);
+  background: linear-gradient(180deg, rgba(22, 32, 46, 0.68) 0%, rgba(13, 20, 30, 0.74) 55%, rgba(9, 14, 21, 0.8) 100%); /* 背景の光が、うっすら透ける */
   border-color: rgba(255, 255, 255, 0.17) rgba(255, 255, 255, 0.07) rgba(0, 0, 0, 0.55) rgba(255, 255, 255, 0.07);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1.2vh 2.4vh -0.4vh rgba(0, 0, 0, 0.7);
 }
