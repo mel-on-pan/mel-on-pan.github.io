@@ -28,6 +28,7 @@
   function defaultSettings() {
     return {
       title: '',
+      roundName: '', // スコアボード左上のルール名の前に付く、ラウンド名 (大会モード。例: 3R / SF / 決勝 / 2R-1)
       rule: 'nomx', // 'nomx' | 'nbyn' | 'free'
       win: 7, // N○M× の勝ち抜け正解数
       lose: 3, // N○M× の失格誤答数

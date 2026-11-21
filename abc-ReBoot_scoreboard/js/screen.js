@@ -849,7 +849,8 @@
 
   function render(st) {
     $('title').textContent = st.settings.title;
-    $('rule').textContent = QB.ruleLabel(st.settings);
+    // 左上: 「ラウンド名 ルール名」(例: 3R Swedish10)。大会モード以外では、ルール名だけ
+    $('rule').textContent = [st.settings.roundName, QB.ruleLabel(st.settings)].filter(Boolean).join(' ');
     $('survivors').textContent = QB.survivorsText(st);
     document.documentElement.style.setProperty('--count', st.players.length);
 
